@@ -1,9 +1,9 @@
 {
-  "name": "uno-com-escada",
+  "name": "gp-napoli",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Fiat Uno Mille EP 1996 com escada no teto — três circuitos 3D WebGPU no navegador.",
+  "description": "Gran Premio di Napoli: simulatore WebGPU single-HTML con Fiat 127 SSC Napoli 1926 e Circuito Storico di Posillipo (1937, 1955, 2026).",
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js",

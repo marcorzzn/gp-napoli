@@ -1,142 +1,128 @@
-# Uno com escada
+# Gran Premio di Napoli · WebGPU
 
-**Um Fiat Uno Mille EP 1996, com uma escada de alumínio no teto, para pilotar num circuito de corrida, direto no navegador.**
+**Simulatore di guida 3D WebGPU single-file a zero dipendenze: pilota la Fiat 127 SSC Napoli 1926 sul Lungomare Caracciolo e affronta le 3 epoche storiche del leggendario Circuito di Posillipo (1937 · 1955 · 2026) direttamente nel browser.**
 
-São três versões feitas a partir do mesmo pedido pelo Claude Fable 5.2, pelo Claude Opus 5.5 e pelo GPT-6.2 Astra. Cada versão é um único `index.html`. O código gera o carro, a pista, a mata e o céu, sem depender de assets externos, engine ou biblioteca 3D.
+Questo progetto nasce come fork ed evoluzione architettonica del motore WebGPU puro *Uno com escada* (ispirato a sua volta da *Abyssal Garden*), completamente riprogettato ed esteso per ambientare gare motoristiche storiche e moderne nel cuore e nella topografia reale di **Napoli**.
 
-![O Uno azul com a escada no teto contornando uma curva, visto pela câmera de TV](.github/screenshots/fable-tv.jpg)
+![Fiat 127 Napoli 1926 sul Lungomare](assets/aistudio/image_f3e260ec.png)
 
-O projeto nasceu num vídeo do canal [ViktorKav](https://www.youtube.com/@vkav) sobre como escrever um pedido para a IA. O material de apoio do vídeo está em [viktorkav.com.br/apoio/uno-com-escada](https://viktorkav.com.br/apoio/uno-com-escada/).
+---
 
-## Jogar
+## 🎮 Come Giocare
 
-Pelo navegador, sem baixar nada:
+### 1. Online (GitHub Pages)
+Apri la pagina web del progetto senza scaricare o installare nulla:
+👉 **[GitHub Pages Gran Premio di Napoli](https://marcorzzn.github.io/gp-napoli/)**
 
-- [Versão do Fable 5.2](https://viktorkav.com.br/apoio/uno-com-escada/fable/)
-- [Versão do Opus 5.5](https://viktorkav.com.br/apoio/uno-com-escada/opus/)
-- [Versão do GPT-6.2 Astra](https://viktorkav.com.br/apoio/uno-com-escada/astra/)
+### 2. In Locale sul tuo Computer
+1. Clona il repository o scarica i file.
+2. Avvia un server locale con Node.js:
+   ```bash
+   npm install
+   npm start
+   ```
+   e naviga su `http://localhost:3000`.
+3. In alternativa, puoi aprire direttamente nel browser il file compilato `napoli/index.html` o `posillipo/index.html`.
 
-Ou no seu computador:
+> [!IMPORTANT]
+> **Requisiti di Sistema:**  
+> È richiesto un browser moderno con supporto nativo a **WebGPU** (Google Chrome, Microsoft Edge o Apple Safari 18+).  
+> Il motore include **4 profili grafici scalabili**: dai PC portatili con grafica integrata del 2014 (*Molto Bassa - APU 2014* a 60 FPS stabili) fino a workstation moderne (*Alta - PBR Completo* con cascate d'ombra, TAA, motion blur e riflessi SSR).
 
-1. Baixe [`fable/index.html`](fable/index.html), [`opus/index.html`](opus/index.html) ou [`astra/index.html`](astra/index.html).
-2. Abra o arquivo no **Chrome** ou no **Edge**, num computador.
-3. Espere o circuito carregar. No Fable e no Opus, aperte **Começar**. No Astra, acelere com `W`.
+---
 
-Não há nada para instalar, e a página funciona sem rede. Ela precisa de um navegador com **WebGPU**. O alvo do pedido foi um MacBook Pro M4 Max em 2560×1440; em máquina mais modesta, a taxa de quadros cai.
+## 🏁 I Circuiti Realizzati
 
-## As três versões
+### 1. Circuito del Lungomare Caracciolo (1.275 m)
+* **Vettura:** **Fiat 127 Special SSC Napoli 1926** con livrea azzurra ufficiale, cofano bianco con scudetto tricolore n. 3, tetto a scacchi biancazzurri, maschera di Pulcinella, sponsor d'epoca e scritta *FORZA NAPOLI*.
+* **Tracciato:** Anello cittadino da 1.275 metri in senso antiorario su Via Caracciolo con 7 chicane delimitate da rotoballe, tornante Castel dell'Ovo, tornante Mergellina e anello fronte mare della Rotonda Diaz.
+* **Ambiente:** Onde animate del Golfo di Napoli nello shader, scogliere calcaree, sabbia vulcanica di Mappatella Beach, isolotto di Megaride e sagoma del Vesuvio all'orizzonte.
 
-| | Fable 5.2 | Opus 5.5 | GPT-6.2 Astra |
-|---|---|---|---|
-| Circuito | Serra da Mata | Circuito da Serra | Serra do Lume |
-| Esforço | Alto | Alto | Ultra |
-| Tempo de trabalho | 7 h 12 min | 5 h | 6 h 49 min |
-| Rodadas do crítico visual | 8 | 11 | 19 |
-| Defeitos graves na última rodada | 4 | 5 | 0 |
-| Preço de API | US$ 347,64 | US$ 87,81 | US$ 371,02 |
-| Tamanho no fim do teste | 546 KB | 338 KB | 467 KB |
-| Tamanho da versão jogável | 603 KB | 341 KB | 467 KB |
+### 2. Circuito Storico di Posillipo (5,13 km — 3 Epoche Storiche)
+Ricostruzione geometrica fedele del tracciato collinare panoramico (altimetria reale tra +108 m e +152 m s.l.m., Viale Virgilio, Parco Virgiliano, picchiata di Coroglio, Isola di Nisida, Via Boccaccio, Via Manzoni e Via Petrarca):
 
-| Fable 5.2 | Opus 5.5 | GPT-6.2 Astra |
-|---|---|---|
-| ![Reta de largada na versão do Fable](.github/screenshots/fable-largada.jpg) | ![Pórtico de largada na versão do Opus](.github/screenshots/opus-largada.jpg) | ![Uno azul na frente dos boxes da Serra do Lume](.github/screenshots/astra-largada.jpg) |
-| ![Curva na versão do Fable](.github/screenshots/fable-curva.jpg) | ![Curva na versão do Opus](.github/screenshots/opus-curva.jpg) | ![Uno contornando uma curva na Serra do Lume](.github/screenshots/astra-curva.jpg) |
+| Epoca | Vettura | Livrea e Specifiche | Atmosfera & Dettagli Scena |
+|:---|:---|:---|:---|
+| **1937** | **Alfa Romeo 12C-36** (#32) | V12 4.1L sovralimentato, 370 CV, 820 kg, ruote a raggi Borrani | Stile *Cinegiornale Luce* in bianco e nero (CSS zero-cost GPU), balle di paglia, torretta razionalista bianca |
+| **1955** | **Lancia D50 Ascari** (#6) | V8 90° 2.5L di Vittorio Jano, 260 CV, 620 kg, serbatoi a siluro | VII GP di Napoli, luce calda Kodachrome, casco azzurro di Alberto Ascari, box in legno con fusti d'epoca Shell/Agip |
+| **2026** | **Ferrari SF-26** (#16) | V6 Turbo Ibrido, 1.020 CV, 798 kg, gomme slick, Halo in titanio | FIA Street Circuit moderno, barriere TecPro, yacht nella baia di Nisida, *Active Aero* DRS / X-Mode |
 
-Cada modelo teve seu próprio crítico visual. O pedido original dava a tarefa por pronta quando restassem, no máximo, defeitos menores. O Opus encerrou por conta própria na rodada 11, avisando que a tarefa ainda não estava pronta. O Fable foi interrompido na rodada 8. O Astra foi encerrado por decisão do Victor após a rodada 19, com zero defeitos graves e três médios. [Veja o processo do Astra e as medições.](astra/PROCESSO.md)
+---
 
-## Controles
+## 🕹️ Comandi di Gioco
 
-### Fable e Opus
+Il gioco supporta sia la **tastiera** che il **controller Gamepad USB/Bluetooth** (Xbox, PlayStation, generico):
 
-A lista também aparece na tela de início dos dois jogos.
+### Controlli di Guida
+| Azione | Tastiera | Gamepad |
+|:---|:---|:---|
+| **Accelera** | `W` oppure `↑` | Grilletto Destro (`RT` / `R2`) |
+| **Frena / Retromarcia** | `S` oppure `↓` | Grilletto Sinistro (`LT` / `L2`) |
+| **Sterza** | `A` `D` oppure `←` `→` | Levetta Analogica Sinistra |
+| **Freno a Mano** | `Spazio` | Tasto `A` / `Croce` |
+| **Active Aero (Ferrari 2026)** | Tieni premuto `Spazio` (X-Mode DRS) | Tieni premuto `A` / `Croce` |
+| **Cambia Telecamera** | `C` (Inseguimento, Cofano, Bordo Pista) | Tasto `Y` / `Triangolo` |
+| **Guarda Indietro** | Tieni premuto `V` | Tieni premuto `RB` / `R1` |
+| **Riposiziona Auto in Pista** | `R` | Tasto `X` / `Quadrato` |
+| **Pausa / Menu Impostazioni** | `Esc` | Tasto `Start` / `Options` |
 
-| | Teclado | Controle |
-|---|---|---|
-| Acelerar | `W` ou `↑` | Gatilho direito |
-| Frear e dar ré | `S` ou `↓` | Gatilho esquerdo |
-| Fazer curvas | `A` `D` ou `←` `→` | Analógico esquerdo |
-| Freio de mão | `Espaço` | `A` |
-| Trocar a câmera | `C` | `Y` |
-| Olhar para trás | Segurar `V` | Segurar `RB` |
-| Devolver o carro à pista | `R` | `X` |
-| Pausar e abrir o menu | `Esc` | `Start` |
+### Strumenti e Scorciatoie
+| Tasto | Funzione |
+|:---:|:---|
+| `M` | Attiva / disattiva audio sintetizzato |
+| `H` | Mostra / nasconde overlay statistiche prestazioni (FPS, draw calls, frame time) |
+| `F` | Modalità Guida Autonoma (AI Demo lap) |
+| `B` | Benchmark automatico di 60 secondi con calcolo min/avg/max FPS |
+| `1` – `6` | Pose telecamera preimpostate per immortalare la vettura e il panorama |
 
-| Ferramenta | Tecla |
-|---|---|
-| Ligar e desligar o som | `M` |
-| Estatísticas de desempenho | `H` |
-| Benchmark: a volta roteirizada de 60 s, com média e máximo no fim | `B` |
-| Assistir à volta roteirizada | `F` |
-| Poses fixas de câmera | `1` a `6` |
+---
 
-O câmbio é automático, e a volta conta quando o carro cruza a linha de largada. O som começa depois do primeiro clique.
+## 🛠️ Architettura e Sviluppo
 
-### GPT-6.2 Astra
+Il progetto è strutturato secondo la filosofia **Zero-Dependency Single-HTML**: il codice sorgente modulare viene unito e compilato da script Node.js privi di dipendenze pesanti in un unico file HTML autocontenuto pronto per la distribuzione.
 
-O jogo abre direto na pista. Use `W` para acelerar, `S` para frear e dar ré, `A` e `D` para fazer curvas e `Espaço` para o freio de mão. `C` alterna entre três câmeras, `R` reposiciona o carro e `H` abre os controles.
-
-## Como foi feito
-
-A pasta [`pedidos`](pedidos) tem o texto que a IA recebeu, sem cortes:
-
-| Arquivo | O que é |
-|---|---|
-| [`01-circuito.txt`](pedidos/01-circuito.txt) | O pedido do jogo. Prioridades em ordem, restrições, máquina-alvo, cena, três verificações (crítico visual, desempenho e controles) e o critério de pronto. Os três modelos receberam o mesmo texto. |
-| [`02-som-e-menu.txt`](pedidos/02-som-e-menu.txt) | O pedido seguinte: controle, painel, tela de início, menu, benchmark e som sintetizado. Foi passado ao Fable 5.2 nos dois jogos, depois do teste. |
-| [`03-ajustes.txt`](pedidos/03-ajustes.txt) | Três ajustes finais de texto e de volume. |
-
-O crítico visual do primeiro pedido é um subagente novo a cada rodada, que vê só as imagens do jogo e as referências, nunca o código. As fotos do carro e as capturas usadas como referência de imagem não fazem parte deste repositório.
-
-O molde do pedido vem do [Abyssal Garden](https://github.com/Noniv/abyssal-garden), do Noniv: um oceano 3D de 97 KB, feito do mesmo jeito.
-
-## Mexer no código
-
-O código legível de cada versão está na pasta `source` dela. Para montar o `index.html` de novo, use Node.js 18 ou mais novo para o Fable e o Opus, ou Python 3 para o Astra. Os scripts dispensam pacotes adicionais.
-
+### Comandi per lo Sviluppo
 ```bash
-node fable/source/build.mjs
-node opus/source/build.mjs
-python3 astra/source/build.py
+# Installa le dipendenze per il server locale
+npm install
+
+# Compila tutti i bundle HTML dei circuiti (napoli/index.html e posillipo/index.html)
+npm run build
+
+# Esegui la suite completa di test (geometria tracciati, fisica Pacejka, parser GLB, server)
+npm test
+
+# Avvia il server locale di anteprima
+npm start
 ```
 
-Cada comando reescreve o `index.html` da versão.
+### Struttura delle Cartelle
+```text
+gp-napoli/
+├── index.html                   # Landing page hub e player unificato per GitHub Pages
+├── server.js                    # Server HTTP Node.js/Express locale
+├── package.json                 # Script di build, test e avvio
+│
+├── napoli/                      # Circuito Lungomare Caracciolo (Fiat 127)
+│   ├── index.html               # Singolo file compilato (giocabile offline)
+│   └── source/                  # Sorgenti JS modulari e shader WGSL
+│       ├── js/                  # Matematica, motore fisico, logica di gioco, audio
+│       ├── wgsl/                # Shader WebGPU PBR, ombre, mare, cielo, post-process
+│       └── build.mjs            # Compilatore single-HTML
+│
+├── posillipo/                   # Circuito Storico di Posillipo 5,13 km (1937 · 1955 · 2026)
+│   ├── index.html               # Singolo file compilato (giocabile offline)
+│   └── source/                  # Vetture storiche, altimetria, mura in tufo, shader
+│       ├── js/                  # 03_glb.js (parser GLB offline), 30_car_a_posillipo.js, ecc.
+│       ├── wgsl/                # Shader personalizzati (final con grading epoche, ombre)
+│       └── build.mjs            # Compilatore single-HTML
+│
+├── assets/                      # Immagini d'archivio e riferimenti storici
+└── LICENSE.md                   # Licenza PolyForm Noncommercial 1.0.0
+```
 
-**Versão do Fable** ([`fable/source`](fable/source)): os arquivos de `js/` entram na página na ordem do nome.
+---
 
-| Arquivo | O que tem dentro |
-|---|---|
-| `js/10_track.js` | O circuito: traçado, elevação e zonas. **Um bom lugar para começar.** |
-| `js/30_car_*.js` | O Uno: a forma da carroceria, a pintura, as peças, o rack e a escada |
-| `js/31_world.js`, `js/32_props.js` | Terreno, pista, guard-rails, arquibancada, boxes e pórtico |
-| `js/33_veg_*.js` | A mata: árvores, grama e os impostores de longe |
-| `js/40_vehicle.js` | A física do carro |
-| `js/45_game.js` | Entrada, câmeras e a volta roteirizada |
-| `js/50_som.js` | O som, sintetizado na hora |
-| `js/51_painel.js`, `js/52_ui.js` | Painel, tela de início, menu e benchmark |
-| `wgsl/` | Os shaders: materiais, céu, sombras, pós-processamento |
+## ⚖️ Licenza
 
-**Versão do Opus** ([`opus/source`](opus/source)):
-
-| Arquivo | O que tem dentro |
-|---|---|
-| `js/track.js` | O circuito. **Um bom lugar para começar.** |
-| `js/car_model.js`, `js/cargfx.js` | O Uno e as malhas dele na GPU |
-| `js/world.js`, `js/terrain.js`, `js/vegetation.js` | Pista, terreno e mata |
-| `js/physics.js` | A física do carro |
-| `js/game.js` | Carga, laço principal, entrada e câmeras |
-| `js/som.js` | O som, sintetizado na hora |
-| `js/painel.js` | O painel do jogo |
-| `js/renderer.js`, `shaders/` | O renderizador e os shaders |
-
-**Versão do Astra** ([`astra/source`](astra/source))
-
-| Arquivo | O que tem dentro |
-|---|---|
-| `world.js`, `pavement.js` | Traçado, cenário e superfície da pista |
-| `car.js`, `drive.js` | Geometria do Uno e física da pilotagem |
-| `render.js`, `ambient.js` | Renderização WebGPU e iluminação |
-| `main.js`, `hud.js` | Controles, câmeras, volta de teste e painel |
-
-## Licença
-
-[PolyForm Noncommercial 1.0.0](LICENSE.md): livre para usar, estudar, mudar e compartilhar sem fim comercial.
+Rilasciato sotto licenza [PolyForm Noncommercial 1.0.0](LICENSE.md): libero per lo studio, la modifica, la condivisione e l'uso personale a scopo non commerciale.

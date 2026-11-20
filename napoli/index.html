@@ -39,6 +39,11 @@ html,body{margin:0;height:100%;background:#060c14;overflow:hidden;font:14px/1.45
 #ui button+button{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2)}
 #ui button+button:hover{background:rgba(255,255,255,.22)}
 #ui button:focus-visible{outline:2px solid #6ec5ff;outline-offset:2px}
+#ui .qbar{margin:1.15em auto 0;display:flex;flex-wrap:wrap;gap:.45em;justify-content:center;align-items:center}
+#ui .qbar span{font-size:.78em;letter-spacing:.12em;text-transform:uppercase;color:#9cc3e6;margin-right:.35em}
+#ui .qbar button{font-size:.82em;font-weight:600;padding:.38em .9em;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:.38em}
+#ui .qbar button:hover{background:rgba(255,255,255,.18)}
+#ui .qbar button.is-active{background:#1278d8;border-color:#6ec5ff;color:#fff}
 #ui .hub-link{display:inline-block;margin-top:1.15em;font-size:.86em;color:#a8c7e6;text-decoration:none;letter-spacing:.04em}
 #ui .hub-link:hover{color:#fff;text-decoration:underline}
 </style>
@@ -83,6 +88,7 @@ html,body{margin:0;height:100%;background:#060c14;overflow:hidden;font:14px/1.45
 <tr><td colspan="2" style="font-weight:400;color:#cde4fb;opacity:.8;padding-top:.5em">Cambio automatico · Senso antiorario<br>Via Caracciolo · Rotonda Diaz · 7 chicane</td></tr>
 </table></div>
 </div>
+<div class="qbar"><span>Qualità Grafica:</span><button type="button" data-q="molto-bassa">Molto Bassa (APU 2014)</button><button type="button" data-q="bassa">Bassa</button><button type="button" data-q="media">Media</button><button type="button" data-q="alta">Alta (PBR)</button></div>
 <div class="bt"><button id="b0">Inizia gara</button><button id="bDemo">Guida autonoma (Demo)</button><button id="b1">Benchmark 60 s</button></div>
 <a class="hub-link" href="/">← Torna alla selezione circuiti</a>
 </div></div>
@@ -377,11 +383,18 @@ fn agx(c: vec3f) -> vec3f {
 }
 fn tone(c: vec3f) -> vec3f { return agx(c); }
 @fragment fn fs(in: FsV) -> @location(0) vec4f {
-  let p = vec2i(in.pos.xy); let dim = vec2i(F.screen.xy) - 1;
+  let p = vec2i(in.pos.xy);
+  var c = textureLoad(tCol, p, 0).rgb;
+#ifdef FAST
+  let sc = F.sunCol.rgb / max(lum(F.sunCol.rgb), 1e-4);
+  c *= pow(sc, vec3f(-0.45));
+  c *= F.misc.z * 0.56;
+  return vec4f(tone(c), 1.0);
+#else
+  let dim = vec2i(F.screen.xy) - 1;
   // exposição automática parcial: compensa ~50% da variação de luminância (cenas escuras continuam um pouco mais escuras)
   let lavg = clamp(textureLoad(tExp, vec2i(0), 0).r, 0.02, 3.0);
   let ex = F.misc.z * 0.094 * pow(0.16 / lavg, 0.5) / 0.16;
-  var c = textureLoad(tCol, p, 0).rgb;
   // nitidez (em espaço de tons) com os 4 vizinhos
   let n = textureLoad(tCol, clamp(p + vec2i(0, -1), vec2i(0), dim), 0).rgb + textureLoad(tCol, clamp(p + vec2i(0, 1), vec2i(0), dim), 0).rgb
         + textureLoad(tCol, clamp(p + vec2i(-1, 0), vec2i(0), dim), 0).rgb + textureLoad(tCol, clamp(p + vec2i(1, 0), vec2i(0), dim), 0).rgb;
@@ -418,6 +431,7 @@ fn tone(c: vec3f) -> vec3f { return agx(c); }
   let tri = (h.x + h.y - 1.0);
   o += vec3f(tri) * (1.2 / 255.0) + (h.x - 0.5) * 0.012 * (1.0 - o) * o * 4.0 * 0.5;
   return vec4f(o, 1.0);
+#endif
 }
 `;
 WGSL["fog"] = `// Névoa exponencial em altura com dispersão do sol para a frente. Requer F e tEnv/sClamp.
@@ -1676,13 +1690,17 @@ fn shadowTap(c: i32, uv: vec2f, z: f32, rad: f32, phi: f32) -> f32 {
   return s / f32(n);
 }
 fn shadowStatic(wp: vec3f, n: vec3f, phi: f32, soft: f32) -> f32 {
+#ifdef STATIC_SHADOW
   let tw = F.shadowP.w;
   let lp = F.shadowVP[3] * vec4f(wp + n * tw * 1.2, 1.0);
   let uv = lp.xy * vec2f(0.5, -0.5) + 0.5;
   if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0 || lp.z > 1.0) { return 1.0; }
-  var s = 0.0; let rad = soft / 4096.0;
+  var s = 0.0; let rad = soft / SHADOW_S_RES;
   for (var i = 0; i < 5; i++) { s += textureSampleCompareLevel(tShadowS, sCmp, uv + vogel(i, 5, phi) * rad, lp.z - 0.0012); }
   return s / 5.0;
+#else
+  return 1.0;
+#endif
 }
 // visibilidade do sol em wp (normal n, pixel px para o ruído). nl = N·L para o viés.
 fn sunShadow(wp: vec3f, n: vec3f, px: vec2f, nl: f32) -> f32 { return sunShadowK(wp, n, px, nl, 1.0); }
@@ -1691,10 +1709,8 @@ fn sunShadowK(wp: vec3f, n: vec3f, px: vec2f, nl: f32, rot: f32) -> f32 {
   let noise = ign(px, F.misc.y);
   let phi = noise * 6.2831853 * rot;
   let slope = sat(1.0 - nl);
-  // percorre as cascatas da mais fina para a mais grossa; na faixa de borda de cada uma, MISTURA com a seguinte
-  // (antes a troca era pontilhada por ruído e a borda da cascata aparecia como "dentes de pente" no asfalto)
   var acc = 0.0; var wAcc = 0.0;
-  for (var c = 0; c < 3; c++) {
+  for (var c = 0; c < SHADOW_CASC; c++) {
     let tw = F.shadowP[c];
     let lp = F.shadowVP[c] * vec4f(wp + n * tw * (0.6 + 2.2 * slope), 1.0);
     let uv = lp.xy * vec2f(0.5, -0.5) + 0.5;
@@ -2840,29 +2856,100 @@ const GAME = { ready: false, mode: Q.get('scene') || 'game', capture: Q.has('cap
 GAME.ui = Q.has('ui') ? Q.get('ui') !== '0' : !(Q.has('cap') || Q.has('perf') || Q.has('replay') || Q.has('auto') || Q.has('scene') || navigator.webdriver);
 // Tempo em vetor tipado (escrita por quadro sem caixa na heap): RT[0] = tempo acumulado (s), RT[1] = dt do quadro renderizado, RT[2] = dt pedido ao jogo
 const RT = new Float64Array([0, 1 / 60, 1 / 60, 0]);   // RT[3] = intervalo real do último quadro (ms), para as estatísticas
-const G = { dev: null, ctx: null, fmt: 'bgra8unorm', W: 0, H: 0, hasTS: false, canvas: null };
+const QUALITY_PRESETS = {
+  'molto-bassa': {
+    id: 'molto-bassa', label: 'Molto Bassa', note: 'APU 2014 · 60 FPS',
+    scale: 0.55, maxDpr: 1.0, maxW: 960, maxH: 540,
+    shadowRes: 256, shadowSRes: 256, shadows: 0, staticShadow: false,
+    half: false, ssr: false, taa: false, mblur: false, bloom: false,
+    envRes: 128, envMips: 5, envFacesPerFrame: 0, grass: false, vegScale: 0.45, distScale: 0.55,
+  },
+  bassa: {
+    id: 'bassa', label: 'Bassa', note: 'Ombra 512px · Bilanciata',
+    scale: 0.72, maxDpr: 1.0, maxW: 1280, maxH: 720,
+    shadowRes: 512, shadowSRes: 1024, shadows: 1, staticShadow: true,
+    half: false, ssr: false, taa: false, mblur: false, bloom: false,
+    envRes: 256, envMips: 6, envFacesPerFrame: 0, grass: false, vegScale: 0.65, distScale: 0.72,
+  },
+  media: {
+    id: 'media', label: 'Media', note: 'PBR · 2 Cascatas · TAA',
+    scale: 0.85, maxDpr: 1.25, maxW: 1920, maxH: 1080,
+    shadowRes: 1024, shadowSRes: 2048, shadows: 2, staticShadow: true,
+    half: true, ssr: false, taa: true, mblur: false, bloom: true,
+    envRes: 256, envMips: 6, envFacesPerFrame: 1, grass: true, vegScale: 0.85, distScale: 0.88,
+  },
+  alta: {
+    id: 'alta', label: 'Alta', note: 'PBR Completo · Originale',
+    scale: 1.0, maxDpr: 2.0, maxW: 5120, maxH: 2880,
+    shadowRes: 2048, shadowSRes: 4096, shadows: 3, staticShadow: true,
+    half: true, ssr: true, taa: true, mblur: true, bloom: true,
+    envRes: 512, envMips: 7, envFacesPerFrame: 2, grass: true, vegScale: 1.0, distScale: 1.0,
+  },
+};
+const QUAL = (function () {
+  let id = (Q.get('q') || '').toLowerCase();
+  if (!QUALITY_PRESETS[id]) {
+    try { id = (localStorage.getItem('gpn-quality') || '').toLowerCase(); } catch (e) { id = ''; }
+  }
+  return QUALITY_PRESETS[id] || QUALITY_PRESETS.alta;
+})();
+function setQualityPreset(id) {
+  if (!QUALITY_PRESETS[id]) return;
+  try { localStorage.setItem('gpn-quality', id); } catch (e) {}
+  const u = new URL(location.href);
+  u.searchParams.set('q', id);
+  location.href = u.toString();
+}
+const G = { dev: null, ctx: null, fmt: 'bgra8unorm', W: 0, H: 0, hasTS: false, hasF32Filter: false, canvas: null };
 
 async function gpuInit() {
-  if (!navigator.gpu) throw new Error('WebGPU indisponível neste navegador.');
-  const ad = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
-  if (!ad) throw new Error('Nenhum adaptador WebGPU.');
+  if (!navigator.gpu) throw new Error('WebGPU non disponibile in questo browser.');
+  let ad = null;
+  try { ad = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' }); } catch (e) {}
+  if (!ad) { try { ad = await navigator.gpu.requestAdapter(); } catch (e) {} }
+  if (!ad) { try { ad = await navigator.gpu.requestAdapter({ powerPreference: 'low-power' }); } catch (e) {} }
+  if (!ad) { try { ad = await navigator.gpu.requestAdapter({ forceFallbackAdapter: true }); } catch (e) {} }
+  if (!ad) throw new Error('Nessun adattatore GPU WebGPU disponibile.');
+
   const feats = [];
-  // 'timestamp-query' é pedido na medição de desempenho (?perf) e no jogo aberto por uma pessoa (benchmark e estatísticas
-  // mostram o tempo de GPU quando o navegador permite); ?nots desliga. Captura, poses e testes continuam sem o recurso.
-  for (const f of ['float32-filterable', 'rg11b10ufloat-renderable'].concat((Q.has('perf') || GAME.ui) && !Q.has('nots') ? ['timestamp-query'] : [])) if (ad.features.has(f)) feats.push(f);
-  if (!ad.features.has('float32-filterable')) throw new Error('GPU sem float32-filterable.');
+  if (ad.features) {
+    for (const f of ['float32-filterable', 'rg11b10ufloat-renderable', 'shader-f16']) {
+      if (ad.features.has(f)) feats.push(f);
+    }
+    if ((Q.has('perf') || GAME.ui) && !Q.has('nots') && ad.features.has('timestamp-query')) {
+      feats.push('timestamp-query');
+    }
+  }
+  G.hasF32Filter = feats.includes('float32-filterable');
   G.hasTS = feats.includes('timestamp-query');
+
+  const reqLimits = {};
+  if (ad.limits) {
+    if (ad.limits.maxColorAttachmentBytesPerSample) {
+      reqLimits.maxColorAttachmentBytesPerSample = Math.min(64, ad.limits.maxColorAttachmentBytesPerSample);
+    }
+    if (ad.limits.maxSampledTexturesPerShaderStage) {
+      reqLimits.maxSampledTexturesPerShaderStage = Math.min(16, ad.limits.maxSampledTexturesPerShaderStage);
+    }
+    if (ad.limits.maxBufferSize) {
+      reqLimits.maxBufferSize = ad.limits.maxBufferSize;
+    }
+    if (ad.limits.maxTextureDimension2D) {
+      reqLimits.maxTextureDimension2D = Math.min(8192, ad.limits.maxTextureDimension2D);
+    }
+  }
+
   G.dev = await ad.requestDevice({
     requiredFeatures: feats,
-    requiredLimits: { maxColorAttachmentBytesPerSample: Math.min(64, ad.limits.maxColorAttachmentBytesPerSample), maxSampledTexturesPerShaderStage: 24, maxBufferSize: ad.limits.maxBufferSize, maxTextureDimension2D: 8192 }
+    requiredLimits: reqLimits
   });
   G.dev.addEventListener('uncapturederror', e => { console.error('GPU: ' + e.error.message); G.lastErr = e.error.message; });
   G.canvas = document.getElementById('c');
   const res = (Q.get('res') || '').split('x');
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  G.W = res.length === 2 ? +res[0] : Math.round(innerWidth * dpr);
-  G.H = res.length === 2 ? +res[1] : Math.round(innerHeight * dpr);
-  G.W = clamp(G.W & ~1, 320, 5120); G.H = clamp(G.H & ~1, 180, 2880);
+  const dpr = Math.min(window.devicePixelRatio || 1, QUAL.maxDpr);
+  G.W = res.length === 2 ? +res[0] : Math.round(innerWidth * dpr * QUAL.scale);
+  G.H = res.length === 2 ? +res[1] : Math.round(innerHeight * dpr * QUAL.scale);
+  G.W = clamp(G.W & ~1, 320, QUAL.maxW); G.H = clamp(G.H & ~1, 180, QUAL.maxH);
   G.canvas.width = G.W; G.canvas.height = G.H;
   G.ctx = G.canvas.getContext('webgpu');
   G.fmt = navigator.gpu.getPreferredCanvasFormat();
@@ -3645,14 +3732,39 @@ function forestAt(x, z) {
 }
 
 // ---- 11_worldmap.js
-// Mappe del mondo GPU per il Circuito del Lungomare di Napoli: altezza (r32float) e zone (rgba8).
+// Mappe del mondo GPU per il Circuito del Lungomare di Napoli: altezza (r32float/r16float) e zone (rgba8).
 // R = distanza dal bordo asfalto | G = 0 (circuito cittadino senza ghiaia) | B = parco/vegetazione | A = pavimentazione lungomare/piazza/paddock
 const WM = { height: null, zone: null, x0: 0, z0: 0, sx: 1, sz: 1, zw: 0, zh: 0, zdata: null };
+
+function f32ToF16(src) {
+  const dst = new Uint16Array(src.length);
+  const f32 = new Float32Array(1);
+  const u32 = new Uint32Array(f32.buffer);
+  for (let i = 0; i < src.length; i++) {
+    f32[0] = src[i];
+    const u = u32[0];
+    const s = (u >> 16) & 0x8000;
+    let e = ((u >> 23) & 0xff) - 127 + 15;
+    let m = u & 0x7fffff;
+    if (e <= 0) dst[i] = s;
+    else if (e >= 31) dst[i] = s | 0x7c00;
+    else dst[i] = s | (e << 10) | (m >> 13);
+  }
+  return dst;
+}
+
 function worldMapBuild() {
   const dev = G.dev;
   WM.x0 = HF.x0; WM.z0 = HF.z0; WM.sx = HF.w - 1; WM.sz = HF.h - 1;
-  WM.height = mkTex(HF.w, HF.h, 'r32float', TU.TB | TU.CD);
-  dev.queue.writeTexture({ texture: WM.height }, HF.d, { bytesPerRow: HF.w * 4 }, [HF.w, HF.h]);
+  const useF32 = !!G.hasF32Filter;
+  const hFmt = useF32 ? 'r32float' : 'r16float';
+  WM.height = mkTex(HF.w, HF.h, hFmt, TU.TB | TU.CD);
+  if (useF32) {
+    dev.queue.writeTexture({ texture: WM.height }, HF.d, { bytesPerRow: HF.w * 4 }, [HF.w, HF.h]);
+  } else {
+    const hf16 = f32ToF16(HF.d);
+    dev.queue.writeTexture({ texture: WM.height }, hf16, { bytesPerRow: HF.w * 2 }, [HF.w, HF.h]);
+  }
   const zw = WM.zw = (HF.w - 1) * 2 + 1, zh = WM.zh = (HF.h - 1) * 2 + 1, z = WM.zdata = new Uint8Array(zw * zh * 4), loc = new Float64Array(4);
   const enc = (v, lo, hi) => Math.round(sat((v - lo) / (hi - lo)) * 255);
   for (let j = 0; j < zh; j++) for (let i = 0; i < zw; i++) {
@@ -3683,9 +3795,12 @@ function worldMapBuild() {
 
 // ---- 20_renderer.js
 // Núcleo do renderizador diferido: recursos, uniformes de quadro, famílias de material e o grafo de passes.
-const SHADOW_RES = 2048, SHADOW_S_RES = 4096, ENV_RES = 512, ENV_MIPS = 7, SKY_W = 4096, SKY_H = 1024, VOL_DIST = 220;
+const SHADOW_RES = QUAL.shadowRes, SHADOW_S_RES = QUAL.shadowSRes, ENV_RES = QUAL.envRes, ENV_MIPS = QUAL.envMips, SKY_W = QUAL.id === 'molto-bassa' ? 1024 : QUAL.id === 'bassa' ? 2048 : 4096, SKY_H = SKY_W >> 2, VOL_DIST = 220;
 const SKY_EL0 = -0.14, SKY_ELR = PI / 2 + 0.14;
-const SH_DEFS = { SHADOW_RES: SHADOW_RES + '.0', ENV_MIPS: ENV_MIPS + '.0', ENV_MIP_K: (ENV_RES * 2 / (PI * 1.5)).toFixed(2), VOL_DIST: VOL_DIST + '.0', SKY_EL0: SKY_EL0.toFixed(5), SKY_ELR: SKY_ELR.toFixed(5) };
+const SH_DEFS = Object.assign(
+  { SHADOW_RES: SHADOW_RES + '.0', SHADOW_S_RES: SHADOW_S_RES + '.0', SHADOW_CASC: String(QUAL.shadows), ENV_MIPS: ENV_MIPS + '.0', ENV_MIP_K: (ENV_RES * 2 / (PI * 1.5)).toFixed(2), VOL_DIST: VOL_DIST + '.0', SKY_EL0: SKY_EL0.toFixed(5), SKY_ELR: SKY_ELR.toFixed(5) },
+  QUAL.staticShadow ? { STATIC_SHADOW: '' } : {}
+);
 const KIND = { GBUF: 0, SHADOW: 1, CUBE: 2 };
 
 // ---- struct Frame: lista de campos gera o WGSL e os deslocamentos ----
@@ -3818,7 +3933,7 @@ class MeshSet {
       const pl = ctx.planes, np = ctx.nPlanes, rr = it.r; let vis = true;   // teste esfera × planos embutido (sem números em argumentos)
       for (let k = 0; k < np; k++) if (pl[k * 4] * x + pl[k * 4 + 1] * y + pl[k * 4 + 2] * z + pl[k * 4 + 3] < -rr) { vis = false; break; }
       if (!vis) continue;
-      const dx = x - ctx.cx, dy = y - ctx.cy, dz = z - ctx.cz, md = it.maxDist + it.r; if (dx * dx + dy * dy + dz * dz > md * md) continue;
+      const dx = x - ctx.cx, dy = y - ctx.cy, dz = z - ctx.cz, md = (it.maxDist < 1e8 ? it.maxDist * QUAL.distScale : it.maxDist) + it.r; if (dx * dx + dy * dy + dz * dz > md * md) continue;
       if (!set) { pass.setPipeline(pipe); set = true; }
       R.dyn2[0] = it.slot * 256; pass.setBindGroup(2, R.objBG, R.dyn2, 0, 1);
       pass.setVertexBuffer(0, it.vb); pass.setIndexBuffer(it.ib, 'uint32'); pass.drawIndexed(it.count);
@@ -3993,29 +4108,33 @@ function apiEncoder() { return G.dev.createCommandEncoder(); }
 function apiPass(enc, desc) { return enc.beginRenderPass(desc); }
 function apiFinish(enc) { return enc.finish(); }
 function apiCanvasView() { return G.ctx.getCurrentTexture().createView(); }
-function renderFrame() {
+function renderFrame(forceCube) {
   const dev = G.dev, c = R.cam, D = R.pd;
+  if (!QUAL.taa) R.noJitter = true;
   frameUniforms();
-  for (let i = 0; i < 3; i++) cascadeSetup(i);
+  const nSh = QUAL.shadows;
+  for (let i = 0; i < nSh; i++) cascadeSetup(i);
   setPass(0, c.vpJ, c.pos);
-  for (let i = 0; i < 3; i++) setPass(1 + i, R.casc.vp[i], c.pos);
-  // uma face do cubemap de ambiente por quadro (ciclo completo a cada 6 quadros)
-  // duas faces do cubemap de ambiente por quadro, cada uma na posição atual do carro (ciclo completo a cada 3 quadros)
-  const face = (R.frameIdx * 2) % 6; R.cube.cur.set(R.cube.pos);
-  for (let k = 0; k < 2; k++) { cubeSetup(face + k); setPass(5 + face + k, R.cube.vp, R.cube.cur); m4inv(R.cube.view, R.cube.vp); R.passData.set(R.cube.view, (11 + k) * 64); }
+  for (let i = 0; i < nSh; i++) setPass(1 + i, R.casc.vp[i], c.pos);
+  const envN = forceCube ? 2 : QUAL.envFacesPerFrame;
+  const face = envN > 0 ? (R.frameIdx * envN) % 6 : 0;
+  if (envN > 0) {
+    R.cube.cur.set(R.cube.pos);
+    for (let k = 0; k < envN; k++) { const f = (face + k) % 6; cubeSetup(f); setPass(5 + f, R.cube.vp, R.cube.cur); m4inv(R.cube.view, R.cube.vp); R.passData.set(R.cube.view, (11 + k) * 64); }
+  }
   dev.queue.writeBuffer(R.frameBuf, 0, FR.data);
   dev.queue.writeBuffer(R.passBuf, 0, R.passData, 0, 13 * 64);
   dev.queue.writeBuffer(R.objBuf, 0, R.objData, 0, R.objCount * 64);
   for (let i = 0; i < R.preFrame.length; i++) R.preFrame[i]();
   const enc = apiEncoder();
-  // sombras
-  for (let i = 0; i < 3; i++) {
+  // sombras dinâmicas conforme o preset gráfico
+  for (let i = 0; i < nSh; i++) {
     const p = apiPass(enc, D.shadow[i]);
     drawAll(p, ctxFrom(KIND.SHADOW, R.casc.vp[i], 6, c.pos, i), 1 + i, R.passBG); p.end();
   }
   // faces do cubemap de ambiente
-  for (let k = 0; k < 2; k++) {
-    const f = face + k; cubeSetup(f);
+  for (let k = 0; k < envN; k++) {
+    const f = (face + k) % 6; cubeSetup(f);
     const p = apiPass(enc, D.cube[f]);
     cubeSky(p, 11 + k);
     drawAll(p, ctxFrom(KIND.CUBE, R.cube.vp, 6, R.cube.cur, 0), 5 + f, R.passBGCube); p.end();
@@ -4035,6 +4154,7 @@ function renderFrame() {
 R.preFrame = [];
 // renderiza o mapa de sombras estático do mundo (uma vez, depois que todas as malhas estáticas existem)
 function renderStaticShadow() {
+  if (!QUAL.staticShadow) return;
   const ctr = new Float32Array([TRK.cx, 0, TRK.cz]);
   staticShadowSetup(); setPass(4, R.casc.vp[3], ctr);
   G.dev.queue.writeBuffer(R.frameBuf, 0, FR.data); G.dev.queue.writeBuffer(R.passBuf, 0, R.passData, 0, 12 * 64);
@@ -4056,7 +4176,11 @@ function postInit() {
   D.half = mkPassDesc(1, null, false, 'half'); D.half.colorAttachments[0].view = V.half[0];
   D.blurH = mkPassDesc(1, null, false, 'blurH'); D.blurH.colorAttachments[0].view = V.half[1];
   D.blurV = mkPassDesc(1, null, false, 'blurV'); D.blurV.colorAttachments[0].view = V.half[2];
-  P.light = mkPost('light', { SSR: '' }, [HDR]);
+  const lightDefs = {};
+  if (QUAL.ssr) lightDefs.SSR = '';
+  if (QUAL.shadows === 0) lightDefs.NO_SHADOW = '';
+  if (!QUAL.half) lightDefs.NO_HALF = '';
+  P.light = mkPost('light', lightDefs, [HDR]);
   P.lightBG = [0, 1].map(i => bgOf(P.light, 0, [R.frameBuf, V.gA, V.gB, V.gC, V.depth, V.shadow, V.shadowS, R.sCmp, V.half[2], V.env, V.sky, R.sClamp, R.sSky, V.hist[i]]));
   P.taa = mkPost('taa', {}, [HDR, 'rg16float']);
   P.taaBG = [0, 1].map(i => bgOf(P.taa, 0, [R.frameBuf, V.hdr, V.hist[i], V.gV, V.depth, R.sClamp]));
@@ -4076,6 +4200,7 @@ function postInit() {
   for (let i = 0; i < BLOOM_N; i++) { T.bl[i] = mkTex(Math.max(2, W >> (i + 1)), Math.max(2, H >> (i + 1)), HDR); V.bl[i] = T.bl[i].createView(); }
   P.blFirst = mkPost('bloom', { FIRST: '' }, [HDR]); P.blDown = mkPost('bloom', {}, [HDR]);
   P.blUp = mkPost('bloom', { UP: '', UPW: '1.0' }, [{ format: HDR, blend: { color: { srcFactor: 'one', dstFactor: 'one' }, alpha: { srcFactor: 'one', dstFactor: 'one' } } }]);
+  P.blFirstHistBG = [0, 1].map(i => bgOf(P.blFirst, 0, [V.hist[i], R.sClamp]));
   for (let i = 0; i < BLOOM_N; i++) {
     const d = mkPassDesc(1, null, false, 'blDown' + i); d.colorAttachments[0].view = V.bl[i]; D.blDown.push(d);
     P.blDownBG.push(bgOf(i ? P.blDown : P.blFirst, 0, [i ? V.bl[i - 1] : V.mb, R.sClamp]));
@@ -4091,6 +4216,9 @@ function postInit() {
   D.expo = [0, 1].map(i => { const d = mkPassDesc(1, null, false, 'expo'); d.colorAttachments[0].view = V.ex[i]; return d; });
   P.final = mkPost('final', {}, [G.fmt]);
   P.finalBG = [0, 1].map(i => bgOf(P.final, 0, [R.frameBuf, V.mb, V.bl[0], V.ex[i], R.sClamp, V.depth]));
+  P.finalHistBG = [0, 1].map(i => bgOf(P.final, 0, [R.frameBuf, V.hist[i], V.bl[0], V.ex[i], R.sClamp, V.depth]));
+  P.finalFast = mkPost('final', { FAST: '' }, [G.fmt]);
+  P.finalFastBG = bgOf(P.finalFast, 0, [R.frameBuf, V.hdr, V.bl[0], V.ex[0], R.sClamp, V.depth]);
   D.final = mkPassDesc(1, null, false, 'final');
   // cubemap: céu + pré-filtro
   P.cubeSky = mkPost('cubesky', {}, [HDR], { depthStencil: { format: 'depth32float', depthWriteEnabled: false, depthCompare: 'always' } });
@@ -4127,20 +4255,26 @@ function postFrame(enc) {
   const P = R.post, D = R.pd, cur = R.frameIdx & 1, prev = cur ^ 1;
   // decalques (marcas de pneu) sobre o G-buffer
   if (R.decals.length) { const p = apiPass(enc, D.decal); p.setBindGroup(0, R.globBG); R.dyn1[0] = 0; p.setBindGroup(1, R.passBG, R.dyn1, 0, 1); for (let i = 0; i < R.decals.length; i++) R.decals[i].draw(p); p.end(); }
-  fsPass(enc, D.half, P.half, P.halfBG); fsPass(enc, D.blurH, P.blurH, P.blurHBG); fsPass(enc, D.blurV, P.blurV, P.blurVBG);
+  if (QUAL.half) { fsPass(enc, D.half, P.half, P.halfBG); fsPass(enc, D.blurH, P.blurH, P.blurHBG); fsPass(enc, D.blurV, P.blurV, P.blurVBG); }
   fsPass(enc, D.light, P.light, P.lightBG[prev]);
   if (R.transparents.length) {
     const p = apiPass(enc, D.trans); p.setBindGroup(0, R.globBG); R.dyn1[0] = 0; p.setBindGroup(1, R.passBG, R.dyn1, 0, 1); R.dyn2[0] = 0; p.setBindGroup(2, R.objBG, R.dyn2, 0, 1);
     for (let i = 0; i < R.transparents.length; i++) R.transparents[i].draw(p); p.end();
   }
+  D.final.colorAttachments[0].view = apiCanvasView();
+  if (!QUAL.taa) {
+    if (R.dbgBG) fsPass(enc, D.final, P.dbg, R.dbgBG); else fsPass(enc, D.final, P.finalFast, P.finalFastBG);
+    return;
+  }
   { const p = apiPass(enc, D.taa[cur]); p.setPipeline(P.taa); p.setBindGroup(0, P.taaBG[prev]); p.draw(3); p.end(); }
-  fsPass(enc, D.mbTile, P.mbTile, P.mbTileBG); fsPass(enc, D.mbNeigh, P.mbNeigh, P.mbNeighBG);
-  fsPass(enc, D.mb, P.mb, P.mbBG[cur]);
-  for (let i = 0; i < BLOOM_N; i++) fsPass(enc, D.blDown[i], i ? P.blDown : P.blFirst, P.blDownBG[i]);
+  if (QUAL.mblur) {
+    fsPass(enc, D.mbTile, P.mbTile, P.mbTileBG); fsPass(enc, D.mbNeigh, P.mbNeigh, P.mbNeighBG);
+    fsPass(enc, D.mb, P.mb, P.mbBG[cur]);
+  }
+  for (let i = 0; i < BLOOM_N; i++) fsPass(enc, D.blDown[i], i ? P.blDown : P.blFirst, (i === 0 && !QUAL.mblur) ? P.blFirstHistBG[cur] : P.blDownBG[i]);
   for (let i = 0; i < BLOOM_N - 1; i++) fsPass(enc, D.blUp[i], P.blUp, P.blUpBG[i]);
   fsPass(enc, D.expo[cur], P.expo, P.expoBG[prev]);
-  D.final.colorAttachments[0].view = apiCanvasView();
-  if (R.dbgBG) fsPass(enc, D.final, P.dbg, R.dbgBG); else fsPass(enc, D.final, P.final, P.finalBG[cur]);
+  if (R.dbgBG) fsPass(enc, D.final, P.dbg, R.dbgBG); else fsPass(enc, D.final, P.final, QUAL.mblur ? P.finalBG[cur] : P.finalHistBG[cur]);
 }
 R.decals = [];
 
@@ -7944,11 +8078,16 @@ function uiInit() {
   UI.b0.onclick = () => { if (UI.st === ST.INICIO) { sndStart(); uiSet(ST.JOGO); } else uiResume(); };
   if (UI.bDemo) UI.bDemo.onclick = () => { if (UI.st === ST.INICIO) sndStart(); uiReplay(); };
   UI.b1.onclick = () => { if (UI.st === ST.INICIO) sndStart(); benchStart(); };
+  document.querySelectorAll('[data-q]').forEach(btn => {
+    btn.classList.toggle('is-active', btn.dataset.q === QUAL.id);
+    btn.onclick = () => setQualityPreset(btn.dataset.q);
+  });
   addEventListener('keydown', uiKey);
   document.addEventListener('visibilitychange', () => { if (document.hidden && (UI.st === ST.JOGO || UI.st === ST.FITA || UI.st === ST.BENCH)) uiPause(); });
   addEventListener('gamepadconnected', padCount); addEventListener('gamepaddisconnected', padCount);
   const h = $('hint'); if (h) h.style.display = 'none';
-  if (Q.get('autostart') === '1') { sndStart(); uiSet(ST.JOGO); }
+  if (Q.get('demo') === '1') { sndStart(); uiReplay(); }
+  else if (Q.get('autostart') === '1') { sndStart(); uiSet(ST.JOGO); }
   else uiSet(ST.INICIO);
 }
 // Cambio stato: mostra/nasconde menu, cruscotto e banner; aggiorna data-state su body
@@ -8110,6 +8249,105 @@ function buildTestScene() {
   mb.mat(3).color(1, 0.2, 0.1); mb.box(0, 1.2, 0, 0.3, 0.3, 0.3);
   set.add(mb.upload(), 0, 7);
 }
+function startFallback2D(err) {
+  GAME.fallback2D = true;
+  document.body.dataset.state = 'running-fallback';
+  setMsg('');
+  const hint = document.getElementById('hint');
+  if (hint) {
+    hint.textContent = 'Modalità Compatibilità · W accelera · S frena/retro · A/D sterza · M audio';
+    hint.style.opacity = 0.9;
+  }
+  const canvas = document.getElementById('c');
+  if (!canvas) return;
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  try { trackBuild(); } catch (e) {}
+  try { heightFieldBuild(); } catch (e) {}
+  try { worldMapBuild(); } catch (e) {}
+  try { aiBuild(); } catch (e) {}
+  if (typeof vehicleReset === 'function') vehicleReset();
+  if (GAME.ui && typeof uiInit === 'function') {
+    try { uiInit(); } catch (e) {}
+  }
+  GAME.ready = true;
+
+  let lastT = performance.now();
+  function loop2D(now) {
+    let dt = Math.min((now - lastT) / 1000, 0.05);
+    lastT = now;
+    RT[2] = dt;
+    if (typeof vehicleStep === 'function') vehicleStep(dt);
+    if (typeof sndTick === 'function') sndTick(dt);
+
+    const w = canvas.width = window.innerWidth;
+    const h = canvas.height = window.innerHeight;
+
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, '#0a1d33');
+    grad.addColorStop(0.5, '#193352');
+    grad.addColorStop(0.5, '#122617');
+    grad.addColorStop(1, '#08110a');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    if (TRK && TRK.x && TRK.N) {
+      ctx.save();
+      ctx.translate(w / 2, h / 2);
+      const zoom = Math.min(w, h) / 450;
+      ctx.scale(zoom, zoom);
+
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(110, 197, 255, 0.45)';
+      ctx.lineWidth = (TRK.hw || 4.5) * 2;
+      for (let i = 0; i < TRK.N; i += 4) {
+        const px = TRK.x[i] - VEH.x, pz = TRK.z[i] - VEH.z;
+        if (i === 0) ctx.moveTo(px, pz); else ctx.lineTo(px, pz);
+      }
+      ctx.closePath();
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < TRK.N; i += 6) {
+        const px = TRK.x[i] - VEH.x, pz = TRK.z[i] - VEH.z;
+        if (i === 0) ctx.moveTo(px, pz); else ctx.lineTo(px, pz);
+      }
+      ctx.closePath();
+      ctx.stroke();
+
+      ctx.save();
+      ctx.rotate(-VEH.yaw || 0);
+      ctx.fillStyle = '#1278d8';
+      ctx.fillRect(-1.8, -0.9, 3.6, 1.8);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-0.4, -0.8, 1.6, 1.6);
+      ctx.fillStyle = '#ff2222';
+      ctx.fillRect(1.5, -0.8, 0.4, 0.4);
+      ctx.fillRect(1.5, 0.4, 0.4, 0.4);
+      ctx.restore();
+
+      ctx.restore();
+    }
+
+    const spd = Math.round((VEH.speed || 0) * 3.6);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 30px sans-serif';
+    ctx.fillText(`${spd} km/h`, 32, 54);
+
+    ctx.fillStyle = '#7ebdff';
+    ctx.font = '14px sans-serif';
+    ctx.fillText(`Marcia: ${VEH.gear || 1} · Giri: ${Math.round(VEH.rpm || 1000)} RPM · Circuito Lungomare (Compatibilità)`, 32, 82);
+
+    requestAnimationFrame(loop2D);
+  }
+  requestAnimationFrame(loop2D);
+}
+
 async function main() {
   try {
     await gpuInit();
@@ -8140,18 +8378,9 @@ async function main() {
     GAME.ready = true;
     if (!GAME.capture) requestAnimationFrame(rafLoop);
   } catch (e) {
-    document.body.dataset.state = 'webgpu-unavailable';
-    if (msgEl) {
-      const safeMsg = String(e && e.message ? e.message : e).replace(/[<>&]/g, ch => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[ch]));
-      msgEl.innerHTML =
-        '<div class="err-card">' +
-        '<p class="err-eyebrow">Gran Premio di Napoli · Fiat 127 Napoli 1926</p>' +
-        '<h1 class="err-title">WebGPU richiesto per il circuito 3D</h1>' +
-        '<p class="err-body">Questo circuito usa il motore grafico WebGPU nativo del progetto (' + safeMsg + '). Apri la pagina su Chrome, Edge o Safari 18+ con accelerazione hardware GPU abilitata per correre sul Lungomare Caracciolo.</p>' +
-        '<a class="err-link" href="/">← Torna alla panoramica</a>' +
-        '</div>';
-    }
-    console.error(e); GAME.error = e.message;
+    console.warn('Avvio WebGPU non riuscito, passaggio a simulatore compatibilità universale:', e);
+    GAME.error = e.message;
+    startFallback2D(e);
   }
 }
 let _lastT = 0;

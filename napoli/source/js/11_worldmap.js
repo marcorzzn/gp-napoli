@@ -1,11 +1,36 @@
-// Mappe del mondo GPU per il Circuito del Lungomare di Napoli: altezza (r32float) e zone (rgba8).
+// Mappe del mondo GPU per il Circuito del Lungomare di Napoli: altezza (r32float/r16float) e zone (rgba8).
 // R = distanza dal bordo asfalto | G = 0 (circuito cittadino senza ghiaia) | B = parco/vegetazione | A = pavimentazione lungomare/piazza/paddock
 const WM = { height: null, zone: null, x0: 0, z0: 0, sx: 1, sz: 1, zw: 0, zh: 0, zdata: null };
+
+function f32ToF16(src) {
+  const dst = new Uint16Array(src.length);
+  const f32 = new Float32Array(1);
+  const u32 = new Uint32Array(f32.buffer);
+  for (let i = 0; i < src.length; i++) {
+    f32[0] = src[i];
+    const u = u32[0];
+    const s = (u >> 16) & 0x8000;
+    let e = ((u >> 23) & 0xff) - 127 + 15;
+    let m = u & 0x7fffff;
+    if (e <= 0) dst[i] = s;
+    else if (e >= 31) dst[i] = s | 0x7c00;
+    else dst[i] = s | (e << 10) | (m >> 13);
+  }
+  return dst;
+}
+
 function worldMapBuild() {
   const dev = G.dev;
   WM.x0 = HF.x0; WM.z0 = HF.z0; WM.sx = HF.w - 1; WM.sz = HF.h - 1;
-  WM.height = mkTex(HF.w, HF.h, 'r32float', TU.TB | TU.CD);
-  dev.queue.writeTexture({ texture: WM.height }, HF.d, { bytesPerRow: HF.w * 4 }, [HF.w, HF.h]);
+  const useF32 = !!G.hasF32Filter;
+  const hFmt = useF32 ? 'r32float' : 'r16float';
+  WM.height = mkTex(HF.w, HF.h, hFmt, TU.TB | TU.CD);
+  if (useF32) {
+    dev.queue.writeTexture({ texture: WM.height }, HF.d, { bytesPerRow: HF.w * 4 }, [HF.w, HF.h]);
+  } else {
+    const hf16 = f32ToF16(HF.d);
+    dev.queue.writeTexture({ texture: WM.height }, hf16, { bytesPerRow: HF.w * 2 }, [HF.w, HF.h]);
+  }
   const zw = WM.zw = (HF.w - 1) * 2 + 1, zh = WM.zh = (HF.h - 1) * 2 + 1, z = WM.zdata = new Uint8Array(zw * zh * 4), loc = new Float64Array(4);
   const enc = (v, lo, hi) => Math.round(sat((v - lo) / (hi - lo)) * 255);
   for (let j = 0; j < zh; j++) for (let i = 0; i < zw; i++) {

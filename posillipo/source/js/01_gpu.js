@@ -106,7 +106,7 @@ function setEraPreset(id) {
   location.href = u.toString();
 }
 
-const G = { dev: null, ctx: null, fmt: 'bgra8unorm', W: 0, H: 0, hasTS: false, canvas: null };
+const G = { dev: null, ctx: null, fmt: 'bgra8unorm', W: 0, H: 0, hasTS: false, hasF32Filter: false, canvas: null };
 
 async function gpuInit() {
   G.canvas = document.getElementById('c');
@@ -115,15 +115,44 @@ async function gpuInit() {
     G.canvas.style.filter = ERA.cssFilter;
   }
   if (!navigator.gpu) throw new Error('WebGPU non disponibile in questo browser.');
-  const ad = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
+  let ad = null;
+  try { ad = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' }); } catch (e) {}
+  if (!ad) { try { ad = await navigator.gpu.requestAdapter(); } catch (e) {} }
+  if (!ad) { try { ad = await navigator.gpu.requestAdapter({ powerPreference: 'low-power' }); } catch (e) {} }
+  if (!ad) { try { ad = await navigator.gpu.requestAdapter({ forceFallbackAdapter: true }); } catch (e) {} }
   if (!ad) throw new Error('Nessun adattatore GPU WebGPU disponibile.');
+
   const feats = [];
-  for (const f of ['float32-filterable', 'rg11b10ufloat-renderable'].concat((Q.has('perf') || GAME.ui) && !Q.has('nots') ? ['timestamp-query'] : [])) if (ad.features.has(f)) feats.push(f);
-  if (!ad.features.has('float32-filterable')) throw new Error('GPU senza supporto float32-filterable.');
+  if (ad.features) {
+    for (const f of ['float32-filterable', 'rg11b10ufloat-renderable', 'shader-f16']) {
+      if (ad.features.has(f)) feats.push(f);
+    }
+    if ((Q.has('perf') || GAME.ui) && !Q.has('nots') && ad.features.has('timestamp-query')) {
+      feats.push('timestamp-query');
+    }
+  }
+  G.hasF32Filter = feats.includes('float32-filterable');
   G.hasTS = feats.includes('timestamp-query');
+
+  const reqLimits = {};
+  if (ad.limits) {
+    if (ad.limits.maxColorAttachmentBytesPerSample) {
+      reqLimits.maxColorAttachmentBytesPerSample = Math.min(64, ad.limits.maxColorAttachmentBytesPerSample);
+    }
+    if (ad.limits.maxSampledTexturesPerShaderStage) {
+      reqLimits.maxSampledTexturesPerShaderStage = Math.min(16, ad.limits.maxSampledTexturesPerShaderStage);
+    }
+    if (ad.limits.maxBufferSize) {
+      reqLimits.maxBufferSize = ad.limits.maxBufferSize;
+    }
+    if (ad.limits.maxTextureDimension2D) {
+      reqLimits.maxTextureDimension2D = Math.min(8192, ad.limits.maxTextureDimension2D);
+    }
+  }
+
   G.dev = await ad.requestDevice({
     requiredFeatures: feats,
-    requiredLimits: { maxColorAttachmentBytesPerSample: Math.min(64, ad.limits.maxColorAttachmentBytesPerSample), maxSampledTexturesPerShaderStage: 24, maxBufferSize: ad.limits.maxBufferSize, maxTextureDimension2D: Math.min(8192, ad.limits.maxTextureDimension2D) }
+    requiredLimits: reqLimits
   });
   G.dev.addEventListener('uncapturederror', e => { console.error('GPU: ' + e.error.message); G.lastErr = e.error.message; });
   const res = (Q.get('res') || '').split('x');

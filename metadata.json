@@ -1,5 +1,5 @@
 {
-  "name": "Uno com escada",
-  "description": "Um Fiat Uno Mille EP 1996 com escada no teto para pilotar em três versões de circuito WebGPU: Fable 5.2, Opus 5.5 e GPT-6.2 Astra.",
+  "name": "Gran Premio di Napoli",
+  "description": "Simulatore di guida WebGPU: Fiat 127 SSC Napoli 1926 sul Lungomare Caracciolo e Circuito Storico di Posillipo (5,13 km) nelle epoche 1937, 1955 e 2026.",
   "requestFramePermissions": []
 }

@@ -9,6 +9,107 @@ function buildTestGround() {
   set.add(mb.upload(), 0, 7); return set;
 }
 
+function startFallback2D(err) {
+  GAME.fallback2D = true;
+  document.body.dataset.state = 'running-fallback';
+  setMsg('');
+  const hint = document.getElementById('hint');
+  if (hint) {
+    hint.textContent = 'Modalità Compatibilità Posillipo · W accelera · S frena/retro · A/D sterza · M audio';
+    hint.style.opacity = 0.9;
+  }
+  const canvas = document.getElementById('c');
+  if (!canvas) return;
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  try { trackBuild(); } catch (e) {}
+  try { heightFieldBuild(); } catch (e) {}
+  try { worldMapBuild(); } catch (e) {}
+  try { aiBuild(); } catch (e) {}
+  if (typeof vehicleReset === 'function') vehicleReset();
+  if (GAME.ui && typeof uiInit === 'function') {
+    try { uiInit(); } catch (e) {}
+  }
+  GAME.ready = true;
+
+  let lastT = performance.now();
+  function loop2D(now) {
+    let dt = Math.min((now - lastT) / 1000, 0.05);
+    lastT = now;
+    RT[2] = dt;
+    if (typeof vehicleStep === 'function') vehicleStep(dt);
+    if (typeof sndTick === 'function') sndTick(dt);
+
+    const w = canvas.width = window.innerWidth;
+    const h = canvas.height = window.innerHeight;
+
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, '#0a1d33');
+    grad.addColorStop(0.5, '#193352');
+    grad.addColorStop(0.5, '#122617');
+    grad.addColorStop(1, '#08110a');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    if (TRK && TRK.x && TRK.N) {
+      ctx.save();
+      ctx.translate(w / 2, h / 2);
+      const zoom = Math.min(w, h) / 1300;
+      ctx.scale(zoom, zoom);
+
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(110, 197, 255, 0.45)';
+      ctx.lineWidth = (TRK.hw || 4.7) * 2;
+      for (let i = 0; i < TRK.N; i += 4) {
+        const px = TRK.x[i] - VEH.x, pz = TRK.z[i] - VEH.z;
+        if (i === 0) ctx.moveTo(px, pz); else ctx.lineTo(px, pz);
+      }
+      ctx.closePath();
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < TRK.N; i += 6) {
+        const px = TRK.x[i] - VEH.x, pz = TRK.z[i] - VEH.z;
+        if (i === 0) ctx.moveTo(px, pz); else ctx.lineTo(px, pz);
+      }
+      ctx.closePath();
+      ctx.stroke();
+
+      ctx.save();
+      ctx.rotate(-VEH.yaw || 0);
+      ctx.fillStyle = ERA.id === '1937' ? '#cccccc' : ERA.id === '1955' ? '#d62828' : '#e60000';
+      ctx.fillRect(-2.0, -0.85, 4.0, 1.7);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-0.4, -0.75, 1.6, 1.5);
+      ctx.fillStyle = '#111111';
+      ctx.fillRect(-1.7, -1.0, 0.8, 0.35);
+      ctx.fillRect(-1.7, 0.65, 0.8, 0.35);
+      ctx.fillRect(1.0, -1.0, 0.8, 0.35);
+      ctx.fillRect(1.0, 0.65, 0.8, 0.35);
+      ctx.restore();
+
+      ctx.restore();
+    }
+
+    const spd = Math.round((VEH.speed || 0) * 3.6);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 30px sans-serif';
+    ctx.fillText(`${spd} km/h`, 32, 54);
+
+    ctx.fillStyle = '#7ebdff';
+    ctx.font = '14px sans-serif';
+    ctx.fillText(`Epoca: ${ERA.year} · ${ERA.carName} · Quota: ${Math.round(VEH.y || 145)} m s.l.m. (Compatibilità)`, 32, 82);
+
+    requestAnimationFrame(loop2D);
+  }
+  requestAnimationFrame(loop2D);
+}
+
 async function main() {
   try {
     await gpuInit();
@@ -39,20 +140,9 @@ async function main() {
     GAME.ready = true;
     if (!GAME.capture) requestAnimationFrame(rafLoop);
   } catch (e) {
-    document.body.dataset.state = 'webgpu-unavailable';
-    const hint = document.getElementById('hint');
-    if (hint) hint.style.display = 'none';
-    if (msgEl) {
-      const safeMsg = String(e && e.message ? e.message : e).replace(/[<>&]/g, ch => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[ch]));
-      msgEl.innerHTML =
-        '<div class="err-card">' +
-        '<p class="err-eyebrow">Circuito di Posillipo · ' + ERA.year + ' · ' + ERA.carName + ' (' + QUAL.label + ')</p>' +
-        '<h1 class="err-title">WebGPU richiesto per il circuito 3D</h1>' +
-        '<p class="err-body">Questo simulatore usa il motore WebGPU nativo con preset ' + QUAL.label + ' (' + safeMsg + '). Apri la pagina in Chrome, Edge o Safari 18+ con accelerazione hardware GPU attiva per guidare a Posillipo.</p>' +
-        '<div class="err-actions"><a class="err-link" href="/">← Torna alla panoramica</a></div>' +
-        '</div>';
-    }
-    console.error(e); GAME.error = e.message;
+    console.warn('Avvio WebGPU non riuscito, passaggio a simulatore compatibilità universale:', e);
+    GAME.error = e.message;
+    startFallback2D(e);
   }
 }
 
