@@ -38,8 +38,8 @@ function uiInit() {
   const glbBtn = $('bGlb'), glbIn = $('glb-file'), glbStat = $('glb-status');
   const syncGlbStatus = () => {
     if (!glbStat) return;
-    glbStat.textContent = GLB.loaded
-      ? 'Modello 3D offline attivo: ' + GLB.name + ' (' + GLB.tris.toLocaleString('it-IT') + ' triangoli)'
+    glbStat.textContent = GLB_STATE.loaded
+      ? 'Modello 3D offline attivo: ' + GLB_STATE.source + ' (' + GLB_STATE.triCount.toLocaleString('it-IT') + ' triangoli)'
       : 'Scenario procedurale Posillipo/Nisida attivo (nessun .glb locale in public/assets/posillipo_bundle/models/)';
   };
   syncGlbStatus();

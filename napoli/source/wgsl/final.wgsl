@@ -28,11 +28,18 @@ fn agx(c: vec3f) -> vec3f {
 }
 fn tone(c: vec3f) -> vec3f { return agx(c); }
 @fragment fn fs(in: FsV) -> @location(0) vec4f {
-  let p = vec2i(in.pos.xy); let dim = vec2i(F.screen.xy) - 1;
+  let p = vec2i(in.pos.xy);
+  var c = textureLoad(tCol, p, 0).rgb;
+#ifdef FAST
+  let sc = F.sunCol.rgb / max(lum(F.sunCol.rgb), 1e-4);
+  c *= pow(sc, vec3f(-0.45));
+  c *= F.misc.z * 0.56;
+  return vec4f(tone(c), 1.0);
+#else
+  let dim = vec2i(F.screen.xy) - 1;
   // exposição automática parcial: compensa ~50% da variação de luminância (cenas escuras continuam um pouco mais escuras)
   let lavg = clamp(textureLoad(tExp, vec2i(0), 0).r, 0.02, 3.0);
   let ex = F.misc.z * 0.094 * pow(0.16 / lavg, 0.5) / 0.16;
-  var c = textureLoad(tCol, p, 0).rgb;
   // nitidez (em espaço de tons) com os 4 vizinhos
   let n = textureLoad(tCol, clamp(p + vec2i(0, -1), vec2i(0), dim), 0).rgb + textureLoad(tCol, clamp(p + vec2i(0, 1), vec2i(0), dim), 0).rgb
         + textureLoad(tCol, clamp(p + vec2i(-1, 0), vec2i(0), dim), 0).rgb + textureLoad(tCol, clamp(p + vec2i(1, 0), vec2i(0), dim), 0).rgb;
@@ -69,4 +76,5 @@ fn tone(c: vec3f) -> vec3f { return agx(c); }
   let tri = (h.x + h.y - 1.0);
   o += vec3f(tri) * (1.2 / 255.0) + (h.x - 0.5) * 0.012 * (1.0 - o) * o * 4.0 * 0.5;
   return vec4f(o, 1.0);
+#endif
 }

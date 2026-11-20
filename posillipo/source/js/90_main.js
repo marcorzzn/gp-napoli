@@ -89,7 +89,7 @@ window.__cap = {
   pose(i) { poseApply(i); if (!_cap2d) { _cap2d = document.createElement('canvas'); _cap2d.width = G.W; _cap2d.height = G.H; } _cap2d.getContext('2d').drawImage(G.canvas, 0, 0); return POSES[i].nome; },
   poses() { return POSES.map(p => p.nome); },
   restart() { gameRestart(); },
-  state() { const V = VEH; return { era: ERA.id, qual: QUAL.id, aeroX: V.aeroX, glb: GLB.loaded, rpm: V.rpm, speed: Math.hypot(V.vx, V.vy), gear: V.gear, s: V.s, d: V.d, y: V.y, laps: V.laps }; },
-  R, G, GAME, TRK, GS, VEH, ERA, QUAL, GLB,
+  state() { const V = VEH; return { era: ERA.id, qual: QUAL.id, aeroX: V.aeroX, glb: GLB_STATE.loaded, rpm: V.rpm, speed: Math.hypot(V.vx, V.vy), gear: V.gear, s: V.s, d: V.d, y: V.y, laps: V.laps }; },
+  R, G, GAME, TRK, GS, VEH, ERA, QUAL, GLB_STATE,
 };
 main();
