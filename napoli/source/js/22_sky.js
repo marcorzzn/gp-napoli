@@ -28,13 +28,13 @@ async function skyInit(progress) {
   const sb = mkPost('skybake', {}, ['rgba16float']);
   const su = mkBuf(32, BU.U, new Float32Array([R.sun[0], R.sun[1], R.sun[2], 0, 0.57, 0, 0, 0]));
   const sbg = bgOf(sb, 0, [su, V.noise3, V.noise, R.sLin]);
-  const strips = 16;
+  const strips = 8;
   for (let i = 0; i < strips; i++) {
     enc = dev.createCommandEncoder();
     const p = enc.beginRenderPass({ colorAttachments: [{ view: V.sky, loadOp: i ? 'load' : 'clear', storeOp: 'store' }] });
     p.setPipeline(sb); p.setBindGroup(0, sbg); p.setScissorRect(i * SKY_W / strips, 0, SKY_W / strips, SKY_H); p.draw(3); p.end();
     dev.queue.submit([enc.finish()]);
-    await dev.queue.onSubmittedWorkDone(); if (progress) progress(i / strips);
+    await new Promise(r => setTimeout(r, 0)); if (progress) progress(i / strips);
   }
 }
 function halfToFloat(h) { const s = (h & 0x8000) ? -1 : 1, e = (h >> 10) & 31, f = h & 1023; if (e === 0) return s * Math.pow(2, -14) * (f / 1024); if (e === 31) return f ? NaN : s * Infinity; return s * Math.pow(2, e - 15) * (1 + f / 1024); }
@@ -44,17 +44,28 @@ async function computeSH() {
   const buf = dev.createBuffer({ size: bpr * n * 6, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
   const enc = dev.createCommandEncoder();
   for (let f = 0; f < 6; f++) enc.copyTextureToBuffer({ texture: R.tex.env, mipLevel: mip, origin: [0, 0, f] }, { buffer: buf, offset: f * bpr * n, bytesPerRow: bpr, rowsPerImage: n }, [n, n, 1]);
-  dev.queue.submit([enc.finish()]); await buf.mapAsync(GPUMapMode.READ);
-  const u16 = new Uint16Array(buf.getMappedRange()), sh = new Float64Array(27); let wsum = 0;
-  const AX = [[0, 0, -1, 0, -1, 0, 1, 0, 0], [0, 0, 1, 0, -1, 0, -1, 0, 0], [1, 0, 0, 0, 0, 1, 0, 1, 0], [1, 0, 0, 0, 0, -1, 0, -1, 0], [1, 0, 0, 0, -1, 0, 0, 0, 1], [-1, 0, 0, 0, -1, 0, 0, 0, -1]];
-  for (let f = 0; f < 6; f++) for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
-    const qx = (x + 0.5) / n * 2 - 1, qy = (y + 0.5) / n * 2 - 1, a = AX[f];
-    let dx = a[6] + a[0] * qx + a[3] * qy, dy = a[7] + a[1] * qx + a[4] * qy, dz = a[8] + a[2] * qx + a[5] * qy; const l = Math.hypot(dx, dy, dz); dx /= l; dy /= l; dz /= l;
-    const w = 1 / (l * l * l); wsum += w; const o = (f * bpr * n + y * bpr) / 2 + x * 4;
-    const Y = [0.282095, 0.488603 * dy, 0.488603 * dz, 0.488603 * dx, 1.092548 * dx * dy, 1.092548 * dy * dz, 0.315392 * (3 * dz * dz - 1), 1.092548 * dx * dz, 0.546274 * (dx * dx - dy * dy)];
-    for (let c = 0; c < 3; c++) { const v = Math.min(halfToFloat(u16[o + c]), 50) * w; for (let k = 0; k < 9; k++) sh[k * 3 + c] += v * Y[k]; }
+  dev.queue.submit([enc.finish()]);
+  try {
+    await Promise.race([
+      buf.mapAsync(GPUMapMode.READ),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('computeSH timeout')), 250))
+    ]);
+    const u16 = new Uint16Array(buf.getMappedRange()), sh = new Float64Array(27); let wsum = 0;
+    const AX = [[0, 0, -1, 0, -1, 0, 1, 0, 0], [0, 0, 1, 0, -1, 0, -1, 0, 0], [1, 0, 0, 0, 0, 1, 0, 1, 0], [1, 0, 0, 0, 0, -1, 0, -1, 0], [1, 0, 0, 0, -1, 0, 0, 0, 1], [-1, 0, 0, 0, -1, 0, 0, 0, -1]];
+    for (let f = 0; f < 6; f++) for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const qx = (x + 0.5) / n * 2 - 1, qy = (y + 0.5) / n * 2 - 1, a = AX[f];
+      let dx = a[6] + a[0] * qx + a[3] * qy, dy = a[7] + a[1] * qx + a[4] * qy, dz = a[8] + a[2] * qx + a[5] * qy; const l = Math.hypot(dx, dy, dz); dx /= l; dy /= l; dz /= l;
+      const w = 1 / (l * l * l); wsum += w; const o = (f * bpr * n + y * bpr) / 2 + x * 4;
+      const Y = [0.282095, 0.488603 * dy, 0.488603 * dz, 0.488603 * dx, 1.092548 * dx * dy, 1.092548 * dy * dz, 0.315392 * (3 * dz * dz - 1), 1.092548 * dx * dz, 0.546274 * (dx * dx - dy * dy)];
+      for (let c = 0; c < 3; c++) { const v = Math.min(halfToFloat(u16[o + c]), 50) * w; for (let k = 0; k < 9; k++) sh[k * 3 + c] += v * Y[k]; }
+    }
+    buf.unmap();
+    const K = [0.282095, 0.488603 * 2 / 3, 0.488603 * 2 / 3, 0.488603 * 2 / 3, 1.092548 / 4, 1.092548 / 4, 0.315392 / 4, 1.092548 / 4, 0.546274 / 4], nrm = 4 * PI / wsum;
+    for (let k = 0; k < 9; k++) for (let c = 0; c < 3; c++) FR.data[FR.o.sh + k * 4 + c] = sh[k * 3 + c] * nrm * K[k];
+  } catch (err) {
+    const defSH = [0.36, 0.42, 0.50, 0.14, 0.16, 0.20, 0.04, 0.04, 0.05, 0.08, 0.08, 0.09];
+    for (let k = 0; k < 4; k++) for (let c = 0; c < 3; c++) FR.data[FR.o.sh + k * 4 + c] = defSH[k * 3 + c];
+  } finally {
+    try { buf.destroy(); } catch (e) {}
   }
-  buf.unmap(); buf.destroy();
-  const K = [0.282095, 0.488603 * 2 / 3, 0.488603 * 2 / 3, 0.488603 * 2 / 3, 1.092548 / 4, 1.092548 / 4, 0.315392 / 4, 1.092548 / 4, 0.546274 / 4], nrm = 4 * PI / wsum;
-  for (let k = 0; k < 9; k++) for (let c = 0; c < 3; c++) FR.data[FR.o.sh + k * 4 + c] = sh[k * 3 + c] * nrm * K[k];
 }

@@ -115,7 +115,13 @@ function mkFamily(name, def) {
       d.depthStencil = { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'less' };
       d.primitive.frontFace = 'cw';   // faces do cubo são renderizadas espelhadas em Y
     }
-    R.pending.push(G.dev.createRenderPipelineAsync(d).then(p => { fam.pipe[k] = p; }));
+    const pLabel = `${name}_kind${k}`;
+    try {
+      fam.pipe[k] = G.dev.createRenderPipeline(d);
+    } catch (err) {
+      console.error('Pipeline compilation failed:', pLabel, err);
+      throw err;
+    }
   }
   R.families[name] = fam; return fam;
 }

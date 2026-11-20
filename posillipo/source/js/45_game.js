@@ -105,14 +105,10 @@ function gameWarmup() {
 // em ms por quadro: main() usa esse número para escolher a cadência (120 ou 60 quadros por segundo).
 async function gamePrewarm() {
   RT[2] = 1 / 60; GS.frozen = true; let worst = 0;
-  for (let i = 0; i < 36; i++) {
-    vehicleReset(i * TRK.L / 36, (i % 3) - 1, 0); VEH.slip.fill(1); VEH.vx = 25; for (let k = 0; k < 6; k++) fxStep(); VEH.slip.fill(0); VEH.vx = 0;   // com velocidade: emite fumaça (estreia o pipeline de partículas)
-    GS.cam = i % 3; GS.chaseInit = false; GS.tvCur = -1; GS.cut = true; gameTick(true); renderFrame(); gameTick(true); renderFrame();
-    if (i >= 6) {   // as primeiras vistas ainda pagam compilação de pipelines: não entram na medida
-      await G.dev.queue.onSubmittedWorkDone(); const t0 = performance.now();
-      for (let k = 0; k < 4; k++) { gameTick(true); renderFrame(); }
-      await G.dev.queue.onSubmittedWorkDone(); const ms = (performance.now() - t0) / 4; if (ms > worst) worst = ms;
-    }
+  for (let i = 0; i < 3; i++) {
+    vehicleReset(i * TRK.L / 3, (i % 3) - 1, 0); VEH.slip.fill(1); VEH.vx = 25; for (let k = 0; k < 4; k++) fxStep(); VEH.slip.fill(0); VEH.vx = 0;
+    GS.cam = i % 3; GS.chaseInit = false; GS.tvCur = -1; GS.cut = true; gameTick(true); renderFrame();
+    await new Promise(r => setTimeout(r, 0));
   }
   GS.frozen = false; gameRestart(); return worst;
 }

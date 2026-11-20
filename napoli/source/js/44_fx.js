@@ -9,13 +9,18 @@ function fxInit() {
   FX.skBuf = mkBuf(FX.sk.byteLength, BU.V);
   const code = wgslPP('skid', SH_DEFS), mod = mkShader('skid', SH_DEFS), bgls = reflectBGLs(code); bgls[0] = R.bgl0;
   const none = { format: 'rgba16float', writeMask: 0 };
-  R.pending.push(G.dev.createRenderPipelineAsync({
-    layout: G.dev.createPipelineLayout({ bindGroupLayouts: [bgls[0], bgls[1]] }),
-    vertex: { module: mod, entryPoint: 'vs', buffers: [{ arrayStride: 20, attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }, { shaderLocation: 1, offset: 12, format: 'float32x2' }] }] },
-    fragment: { module: mod, entryPoint: 'fs', targets: [{ format: 'rgba8unorm-srgb', blend: { color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha' }, alpha: { srcFactor: 'zero', dstFactor: 'one' } } }, none, { format: 'rgba8unorm', writeMask: 0 }] },
-    primitive: { topology: 'triangle-list', cullMode: 'none' },
-    depthStencil: { format: 'depth32float', depthWriteEnabled: false, depthCompare: 'greater-equal', depthBias: 6, depthBiasSlopeScale: 2 },
-  }).then(p => { FX.skPipe = p; }));
+  try {
+    FX.skPipe = G.dev.createRenderPipeline({
+      layout: G.dev.createPipelineLayout({ bindGroupLayouts: [bgls[0], bgls[1]] }),
+      vertex: { module: mod, entryPoint: 'vs', buffers: [{ arrayStride: 20, attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }, { shaderLocation: 1, offset: 12, format: 'float32x2' }] }] },
+      fragment: { module: mod, entryPoint: 'fs', targets: [{ format: 'rgba8unorm-srgb', blend: { color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha' }, alpha: { srcFactor: 'zero', dstFactor: 'one' } } }, none, { format: 'rgba8unorm', writeMask: 0 }] },
+      primitive: { topology: 'triangle-list', cullMode: 'none' },
+      depthStencil: { format: 'depth32float', depthWriteEnabled: false, depthCompare: 'greater-equal', depthBias: 6, depthBiasSlopeScale: 2 },
+    });
+  } catch (err) {
+    console.error('Skid pipeline failed:', err);
+    throw err;
+  }
   R.decals.push({ draw(pass) { if (!FX.skPipe) return; pass.setPipeline(FX.skPipe); pass.setVertexBuffer(0, FX.skBuf); pass.draw(SK_N * 6); } });
   FX.pBuf = mkBuf(FX.inst.byteLength, BU.V);
   FX.pFam = mkFwdFamily('particles', {

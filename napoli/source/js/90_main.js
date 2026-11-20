@@ -46,25 +46,31 @@ function startFallback2D(err) {
     hint.textContent = 'Modalità Compatibilità · W accelera · S frena/retro · A/D sterza · M audio';
     hint.style.opacity = 0.9;
   }
-  const canvas = document.getElementById('c');
+  let canvas = document.getElementById('c');
   if (!canvas) return;
+  let ctx = null;
+  try { ctx = canvas.getContext('2d'); } catch (e) {}
+  if (!ctx) {
+    const parent = canvas.parentNode;
+    const newCanvas = document.createElement('canvas');
+    newCanvas.id = 'c';
+    newCanvas.style.cssText = canvas.style.cssText;
+    if (parent) parent.replaceChild(newCanvas, canvas);
+    canvas = newCanvas;
+    ctx = canvas.getContext('2d');
+  }
+  if (!ctx) return;
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
 
   try { trackBuild(); } catch (e) {}
   try { heightFieldBuild(); } catch (e) {}
   try { worldMapBuild(); } catch (e) {}
   try { aiBuild(); } catch (e) {}
-  if (typeof gameInit === 'function') {
-    try { gameInit(); } catch (e) {}
-  } else if (typeof vehicleReset === 'function') {
-    vehicleReset();
-  }
-  if (typeof sndInit === 'function') {
-    try { sndInit(); } catch (e) {}
-  }
+  if (typeof vehicleReset === 'function') vehicleReset();
+  addEventListener('keydown', onKeyDown);
+  addEventListener('keyup', onKeyUp);
+  addEventListener('blur', onBlur);
   if (GAME.ui && typeof uiInit === 'function') {
     try { uiInit(); } catch (e) {}
   }
@@ -75,9 +81,9 @@ function startFallback2D(err) {
     let dt = Math.min((now - lastT) / 1000, 0.05);
     lastT = now;
     RT[2] = dt;
-    if (typeof gameTick === 'function') {
-      gameTick(false);
-    } else if (typeof vehicleStep === 'function') {
+    RT[1] = dt;
+    RT[0] += dt;
+    if (typeof vehicleStep === 'function') {
       vehicleStep(typeof GS !== 'undefined' ? GS.held : 0);
     }
     if (typeof sndFrame === 'function') {
@@ -160,7 +166,7 @@ async function main() {
     if (GAME.mode === 'test') buildTestScene();
     if (GAME.mode === 'placeholder') { buildPlaceholderWorld(); GAME.init = () => { const p = trackPos(40, 0, new Float64Array(5)); setCamera(p[0] - 12, p[1] + 3, p[2] + 4, p[0] + 30, p[1] + 1, p[2], 0.9); R.cube.pos.set([p[0], p[1] + 1.2, p[2]]); }; }
     for (const b of BUILD) await b();
-    await Promise.all(R.pending);
+    if (R.pending && R.pending.length) await Promise.all(R.pending);
     if (G.lastErr) throw new Error(G.lastErr);
     perfInit();
     renderStaticShadow();

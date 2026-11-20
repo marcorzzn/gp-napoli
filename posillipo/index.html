@@ -3997,7 +3997,13 @@ function mkFamily(name, def) {
       d.depthStencil = { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'less' };
       d.primitive.frontFace = 'cw';
     }
-    R.pending.push(G.dev.createRenderPipelineAsync(d).then(p => { fam.pipe[k] = p; }));
+    const pLabel = `${name}_kind${k}`;
+    try {
+      fam.pipe[k] = G.dev.createRenderPipeline(d);
+    } catch (err) {
+      console.error('Pipeline compilation failed:', pLabel, err);
+      throw err;
+    }
   }
   R.families[name] = fam; return fam;
 }
@@ -4366,13 +4372,13 @@ async function skyInit(progress) {
   const sb = mkPost('skybake', {}, ['rgba16float']);
   const su = mkBuf(32, BU.U, new Float32Array([R.sun[0], R.sun[1], R.sun[2], 0, 0.54, 0, 0, 0]));
   const sbg = bgOf(sb, 0, [su, V.noise3, V.noise, R.sLin]);
-  const strips = 16;
+  const strips = 8;
   for (let i = 0; i < strips; i++) {
     enc = dev.createCommandEncoder();
     const p = enc.beginRenderPass({ colorAttachments: [{ view: V.sky, loadOp: i ? 'load' : 'clear', storeOp: 'store' }] });
     p.setPipeline(sb); p.setBindGroup(0, sbg); p.setScissorRect(i * SKY_W / strips, 0, SKY_W / strips, SKY_H); p.draw(3); p.end();
     dev.queue.submit([enc.finish()]);
-    await dev.queue.onSubmittedWorkDone(); if (progress) progress(i / strips);
+    await new Promise(r => setTimeout(r, 0)); if (progress) progress(i / strips);
   }
 }
 function halfToFloat(h) { const s = (h & 0x8000) ? -1 : 1, e = (h >> 10) & 31, f = h & 1023; if (e === 0) return s * Math.pow(2, -14) * (f / 1024); if (e === 31) return f ? NaN : s * Infinity; return s * Math.pow(2, e - 15) * (1 + f / 1024); }
@@ -4381,19 +4387,30 @@ async function computeSH() {
   const buf = dev.createBuffer({ size: bpr * n * 6, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
   const enc = dev.createCommandEncoder();
   for (let f = 0; f < 6; f++) enc.copyTextureToBuffer({ texture: R.tex.env, mipLevel: mip, origin: [0, 0, f] }, { buffer: buf, offset: f * bpr * n, bytesPerRow: bpr, rowsPerImage: n }, [n, n, 1]);
-  dev.queue.submit([enc.finish()]); await buf.mapAsync(GPUMapMode.READ);
-  const u16 = new Uint16Array(buf.getMappedRange()), sh = new Float64Array(27); let wsum = 0;
-  const AX = [[0, 0, -1, 0, -1, 0, 1, 0, 0], [0, 0, 1, 0, -1, 0, -1, 0, 0], [1, 0, 0, 0, 0, 1, 0, 1, 0], [1, 0, 0, 0, 0, -1, 0, -1, 0], [1, 0, 0, 0, -1, 0, 0, 0, 1], [-1, 0, 0, 0, -1, 0, 0, 0, -1]];
-  for (let f = 0; f < 6; f++) for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
-    const qx = (x + 0.5) / n * 2 - 1, qy = (y + 0.5) / n * 2 - 1, a = AX[f];
-    let dx = a[6] + a[0] * qx + a[3] * qy, dy = a[7] + a[1] * qx + a[4] * qy, dz = a[8] + a[2] * qx + a[5] * qy; const l = Math.hypot(dx, dy, dz); dx /= l; dy /= l; dz /= l;
-    const w = 1 / (l * l * l); wsum += w; const o = (f * bpr * n + y * bpr) / 2 + x * 4;
-    const Y = [0.282095, 0.488603 * dy, 0.488603 * dz, 0.488603 * dx, 1.092548 * dx * dy, 1.092548 * dy * dz, 0.315392 * (3 * dz * dz - 1), 1.092548 * dx * dz, 0.546274 * (dx * dx - dy * dy)];
-    for (let c = 0; c < 3; c++) { const v = Math.min(halfToFloat(u16[o + c]), 50) * w; for (let k = 0; k < 9; k++) sh[k * 3 + c] += v * Y[k]; }
+  dev.queue.submit([enc.finish()]);
+  try {
+    await Promise.race([
+      buf.mapAsync(GPUMapMode.READ),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('computeSH timeout')), 250))
+    ]);
+    const u16 = new Uint16Array(buf.getMappedRange()), sh = new Float64Array(27); let wsum = 0;
+    const AX = [[0, 0, -1, 0, -1, 0, 1, 0, 0], [0, 0, 1, 0, -1, 0, -1, 0, 0], [1, 0, 0, 0, 0, 1, 0, 1, 0], [1, 0, 0, 0, 0, -1, 0, -1, 0], [1, 0, 0, 0, -1, 0, 0, 0, 1], [-1, 0, 0, 0, -1, 0, 0, 0, -1]];
+    for (let f = 0; f < 6; f++) for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const qx = (x + 0.5) / n * 2 - 1, qy = (y + 0.5) / n * 2 - 1, a = AX[f];
+      let dx = a[6] + a[0] * qx + a[3] * qy, dy = a[7] + a[1] * qx + a[4] * qy, dz = a[8] + a[2] * qx + a[5] * qy; const l = Math.hypot(dx, dy, dz); dx /= l; dy /= l; dz /= l;
+      const w = 1 / (l * l * l); wsum += w; const o = (f * bpr * n + y * bpr) / 2 + x * 4;
+      const Y = [0.282095, 0.488603 * dy, 0.488603 * dz, 0.488603 * dx, 1.092548 * dx * dy, 1.092548 * dy * dz, 0.315392 * (3 * dz * dz - 1), 1.092548 * dx * dz, 0.546274 * (dx * dx - dy * dy)];
+      for (let c = 0; c < 3; c++) { const v = Math.min(halfToFloat(u16[o + c]), 50) * w; for (let k = 0; k < 9; k++) sh[k * 3 + c] += v * Y[k]; }
+    }
+    buf.unmap();
+    const K = [0.282095, 0.488603 * 2 / 3, 0.488603 * 2 / 3, 0.488603 * 2 / 3, 1.092548 / 4, 1.092548 / 4, 0.315392 / 4, 1.092548 / 4, 0.546274 / 4], nrm = 4 * PI / wsum;
+    for (let k = 0; k < 9; k++) for (let c = 0; c < 3; c++) FR.data[FR.o.sh + k * 4 + c] = sh[k * 3 + c] * nrm * K[k];
+  } catch (err) {
+    const defSH = [0.36, 0.42, 0.50, 0.14, 0.16, 0.20, 0.04, 0.04, 0.05, 0.08, 0.08, 0.09];
+    for (let k = 0; k < 4; k++) for (let c = 0; c < 3; c++) FR.data[FR.o.sh + k * 4 + c] = defSH[k * 3 + c];
+  } finally {
+    try { buf.destroy(); } catch (e) {}
   }
-  buf.unmap(); buf.destroy();
-  const K = [0.282095, 0.488603 * 2 / 3, 0.488603 * 2 / 3, 0.488603 * 2 / 3, 1.092548 / 4, 1.092548 / 4, 0.315392 / 4, 1.092548 / 4, 0.546274 / 4], nrm = 4 * PI / wsum;
-  for (let k = 0; k < 9; k++) for (let c = 0; c < 3; c++) FR.data[FR.o.sh + k * 4 + c] = sh[k * 3 + c] * nrm * K[k];
 }
 
 // ---- 23_forward.js
@@ -4405,13 +4422,18 @@ function mkFwdFamily(name, def) {
   WGSL['__fwd_' + name] = `#include common\n#include gbuf\n#include ${def.src}\n#include entry_fwd\n`;
   const code = wgslPP('__fwd_' + name, defs), mod = mkShader('__fwd_' + name, defs), bgls = reflectBGLs(code);
   bgls[0] = R.bgl0; bgls[2] = R.bgl2; fam.bgls = bgls;
-  R.pending.push(G.dev.createRenderPipelineAsync({
-    label: name, layout: G.dev.createPipelineLayout({ bindGroupLayouts: bgls }),
-    vertex: { module: mod, entryPoint: 'vs', buffers: def.buffers || [VLAYOUT] },
-    fragment: { module: mod, entryPoint: 'fs', targets: [{ format: 'rgba16float', blend: def.blend }] },
-    primitive: { topology: def.topology || 'triangle-list', cullMode: def.cull || 'none', frontFace: 'ccw' },
-    depthStencil: { format: 'depth32float', depthWriteEnabled: false, depthCompare: def.depthCompare || 'greater-equal' },
-  }).then(p => { fam.pipe = p; }));
+  try {
+    fam.pipe = G.dev.createRenderPipeline({
+      label: name, layout: G.dev.createPipelineLayout({ bindGroupLayouts: bgls }),
+      vertex: { module: mod, entryPoint: 'vs', buffers: def.buffers || [VLAYOUT] },
+      fragment: { module: mod, entryPoint: 'fs', targets: [{ format: 'rgba16float', blend: def.blend }] },
+      primitive: { topology: def.topology || 'triangle-list', cullMode: def.cull || 'none', frontFace: 'ccw' },
+      depthStencil: { format: 'depth32float', depthWriteEnabled: false, depthCompare: def.depthCompare || 'greater-equal' },
+    });
+  } catch (err) {
+    console.error('Forward pipeline failed:', name, err);
+    throw err;
+  }
   return fam;
 }
 // bind group de iluminação (grupo 3) compartilhado pelas famílias diretas
@@ -6973,13 +6995,18 @@ function fxInit() {
   FX.skBuf = mkBuf(FX.sk.byteLength, BU.V);
   const code = wgslPP('skid', SH_DEFS), mod = mkShader('skid', SH_DEFS), bgls = reflectBGLs(code); bgls[0] = R.bgl0;
   const none = { format: 'rgba16float', writeMask: 0 };
-  R.pending.push(G.dev.createRenderPipelineAsync({
-    layout: G.dev.createPipelineLayout({ bindGroupLayouts: [bgls[0], bgls[1]] }),
-    vertex: { module: mod, entryPoint: 'vs', buffers: [{ arrayStride: 20, attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }, { shaderLocation: 1, offset: 12, format: 'float32x2' }] }] },
-    fragment: { module: mod, entryPoint: 'fs', targets: [{ format: 'rgba8unorm-srgb', blend: { color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha' }, alpha: { srcFactor: 'zero', dstFactor: 'one' } } }, none, { format: 'rgba8unorm', writeMask: 0 }] },
-    primitive: { topology: 'triangle-list', cullMode: 'none' },
-    depthStencil: { format: 'depth32float', depthWriteEnabled: false, depthCompare: 'greater-equal', depthBias: 6, depthBiasSlopeScale: 2 },
-  }).then(p => { FX.skPipe = p; }));
+  try {
+    FX.skPipe = G.dev.createRenderPipeline({
+      layout: G.dev.createPipelineLayout({ bindGroupLayouts: [bgls[0], bgls[1]] }),
+      vertex: { module: mod, entryPoint: 'vs', buffers: [{ arrayStride: 20, attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }, { shaderLocation: 1, offset: 12, format: 'float32x2' }] }] },
+      fragment: { module: mod, entryPoint: 'fs', targets: [{ format: 'rgba8unorm-srgb', blend: { color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha' }, alpha: { srcFactor: 'zero', dstFactor: 'one' } } }, none, { format: 'rgba8unorm', writeMask: 0 }] },
+      primitive: { topology: 'triangle-list', cullMode: 'none' },
+      depthStencil: { format: 'depth32float', depthWriteEnabled: false, depthCompare: 'greater-equal', depthBias: 6, depthBiasSlopeScale: 2 },
+    });
+  } catch (err) {
+    console.error('Skid pipeline failed:', err);
+    throw err;
+  }
   R.decals.push({ draw(pass) { if (!FX.skPipe) return; pass.setPipeline(FX.skPipe); pass.setVertexBuffer(0, FX.skBuf); pass.draw(SK_N * 6); } });
   FX.pBuf = mkBuf(FX.inst.byteLength, BU.V);
   FX.pFam = mkFwdFamily('particles', {
@@ -7160,14 +7187,10 @@ function gameWarmup() {
 // em ms por quadro: main() usa esse número para escolher a cadência (120 ou 60 quadros por segundo).
 async function gamePrewarm() {
   RT[2] = 1 / 60; GS.frozen = true; let worst = 0;
-  for (let i = 0; i < 36; i++) {
-    vehicleReset(i * TRK.L / 36, (i % 3) - 1, 0); VEH.slip.fill(1); VEH.vx = 25; for (let k = 0; k < 6; k++) fxStep(); VEH.slip.fill(0); VEH.vx = 0;   // com velocidade: emite fumaça (estreia o pipeline de partículas)
-    GS.cam = i % 3; GS.chaseInit = false; GS.tvCur = -1; GS.cut = true; gameTick(true); renderFrame(); gameTick(true); renderFrame();
-    if (i >= 6) {   // as primeiras vistas ainda pagam compilação de pipelines: não entram na medida
-      await G.dev.queue.onSubmittedWorkDone(); const t0 = performance.now();
-      for (let k = 0; k < 4; k++) { gameTick(true); renderFrame(); }
-      await G.dev.queue.onSubmittedWorkDone(); const ms = (performance.now() - t0) / 4; if (ms > worst) worst = ms;
-    }
+  for (let i = 0; i < 3; i++) {
+    vehicleReset(i * TRK.L / 3, (i % 3) - 1, 0); VEH.slip.fill(1); VEH.vx = 25; for (let k = 0; k < 4; k++) fxStep(); VEH.slip.fill(0); VEH.vx = 0;
+    GS.cam = i % 3; GS.chaseInit = false; GS.tvCur = -1; GS.cut = true; gameTick(true); renderFrame();
+    await new Promise(r => setTimeout(r, 0));
   }
   GS.frozen = false; gameRestart(); return worst;
 }
@@ -8052,25 +8075,31 @@ function startFallback2D(err) {
     hint.textContent = 'Modalità Compatibilità Posillipo · W accelera · S frena/retro · A/D sterza · M audio';
     hint.style.opacity = 0.9;
   }
-  const canvas = document.getElementById('c');
+  let canvas = document.getElementById('c');
   if (!canvas) return;
+  let ctx = null;
+  try { ctx = canvas.getContext('2d'); } catch (e) {}
+  if (!ctx) {
+    const parent = canvas.parentNode;
+    const newCanvas = document.createElement('canvas');
+    newCanvas.id = 'c';
+    newCanvas.style.cssText = canvas.style.cssText;
+    if (parent) parent.replaceChild(newCanvas, canvas);
+    canvas = newCanvas;
+    ctx = canvas.getContext('2d');
+  }
+  if (!ctx) return;
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
 
   try { trackBuild(); } catch (e) {}
   try { heightFieldBuild(); } catch (e) {}
   try { worldMapBuild(); } catch (e) {}
   try { aiBuild(); } catch (e) {}
-  if (typeof gameInit === 'function') {
-    try { gameInit(); } catch (e) {}
-  } else if (typeof vehicleReset === 'function') {
-    vehicleReset();
-  }
-  if (typeof sndInit === 'function') {
-    try { sndInit(); } catch (e) {}
-  }
+  if (typeof vehicleReset === 'function') vehicleReset();
+  addEventListener('keydown', onKeyDown);
+  addEventListener('keyup', onKeyUp);
+  addEventListener('blur', onBlur);
   if (GAME.ui && typeof uiInit === 'function') {
     try { uiInit(); } catch (e) {}
   }
@@ -8081,9 +8110,9 @@ function startFallback2D(err) {
     let dt = Math.min((now - lastT) / 1000, 0.05);
     lastT = now;
     RT[2] = dt;
-    if (typeof gameTick === 'function') {
-      gameTick(false);
-    } else if (typeof vehicleStep === 'function') {
+    RT[1] = dt;
+    RT[0] += dt;
+    if (typeof vehicleStep === 'function') {
       vehicleStep(typeof GS !== 'undefined' ? GS.held : 0);
     }
     if (typeof sndFrame === 'function') {
@@ -8166,7 +8195,7 @@ async function main() {
     setMsg('Generazione cielo e Golfo di Napoli (' + ERA.year + ')…'); await skyInit();
     setMsg('Costruzione scenario Posillipo & ' + ERA.carName + '…'); await new Promise(r => setTimeout(r));
     for (const b of BUILD) await b();
-    await Promise.all(R.pending);
+    if (R.pending && R.pending.length) await Promise.all(R.pending);
     if (G.lastErr) throw new Error(G.lastErr);
     // Rilevamento automatico modello 3D fotogrammetrico offline (.glb) se presente su disco
     await tryAutoLoadPosillipoGlb();

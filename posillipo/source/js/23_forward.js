@@ -6,13 +6,18 @@ function mkFwdFamily(name, def) {
   WGSL['__fwd_' + name] = `#include common\n#include gbuf\n#include ${def.src}\n#include entry_fwd\n`;
   const code = wgslPP('__fwd_' + name, defs), mod = mkShader('__fwd_' + name, defs), bgls = reflectBGLs(code);
   bgls[0] = R.bgl0; bgls[2] = R.bgl2; fam.bgls = bgls;
-  R.pending.push(G.dev.createRenderPipelineAsync({
-    label: name, layout: G.dev.createPipelineLayout({ bindGroupLayouts: bgls }),
-    vertex: { module: mod, entryPoint: 'vs', buffers: def.buffers || [VLAYOUT] },
-    fragment: { module: mod, entryPoint: 'fs', targets: [{ format: 'rgba16float', blend: def.blend }] },
-    primitive: { topology: def.topology || 'triangle-list', cullMode: def.cull || 'none', frontFace: 'ccw' },
-    depthStencil: { format: 'depth32float', depthWriteEnabled: false, depthCompare: def.depthCompare || 'greater-equal' },
-  }).then(p => { fam.pipe = p; }));
+  try {
+    fam.pipe = G.dev.createRenderPipeline({
+      label: name, layout: G.dev.createPipelineLayout({ bindGroupLayouts: bgls }),
+      vertex: { module: mod, entryPoint: 'vs', buffers: def.buffers || [VLAYOUT] },
+      fragment: { module: mod, entryPoint: 'fs', targets: [{ format: 'rgba16float', blend: def.blend }] },
+      primitive: { topology: def.topology || 'triangle-list', cullMode: def.cull || 'none', frontFace: 'ccw' },
+      depthStencil: { format: 'depth32float', depthWriteEnabled: false, depthCompare: def.depthCompare || 'greater-equal' },
+    });
+  } catch (err) {
+    console.error('Forward pipeline failed:', name, err);
+    throw err;
+  }
   return fam;
 }
 // bind group de iluminação (grupo 3) compartilhado pelas famílias diretas
