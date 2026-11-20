@@ -1,0 +1,45 @@
+Construa um jogo de corrida 3D em tempo real, que rode no navegador: um Fiat Uno Mille EP 1996, de duas portas, com uma escada de alumínio no teto, num circuito de corrida. Ele só precisa ter imagem no patamar de um jogo de corrida de ponta de 2026 e me deixar pilotar o carro pelo circuito.
+
+PRIORIDADES (nesta ordem, quando entrarem em conflito)
+1. Qualidade visual
+2. Parecer o carro das fotos
+3. Taxa de quadros estável na máquina-alvo
+4. Tamanho da entrega
+
+RESTRIÇÕES
+- Sem engine e sem biblioteca 3D ou de física: nada de three.js, Babylon.js, PlayCanvas ou parecidos. Renderizado em WebGPU.
+- Tudo procedural: nenhum arquivo de textura, de modelo, de HDRI ou de áudio. Carro, pista, vegetação, céu e materiais saem do seu código.
+- A entrega é um único `index.html` autocontido nesta pasta, que abre sem rede. Ele pode ser montado por um passo de build a partir de fontes em `source/`. Informe o tamanho final.
+- Zero alocação de JavaScript por quadro. Pré-aloque todos os buffers.
+- O circuito e o cenário são originais. As capturas em `referencia/jogo/` valem só como patamar de imagem (luz, materiais, densidade de detalhe, pós-processamento): não reproduza pista, lugar, interface, logotipo nem carro de nenhum jogo.
+- As imagens de `referencia/` não entram na página.
+
+ALVO
+- MacBook Pro M4 Max (36 GB), macOS 27.2, Chrome 157, tela de 120 Hz
+- 2560×1440 em resolução cheia. Tempo de quadro de GPU de até 11 ms na média, e nenhum quadro acima de 16,7 ms durante uma volta roteirizada de 60 s.
+
+CENA
+- O carro: Fiat Uno Mille EP 1996 de duas portas, o das fotos em `referencia/carro/`, no azul-claro metálico das duas fotos de estúdio (as fotos do carro vermelho servem para forma e detalhe). Pintura com verniz refletindo o céu e o cenário, vidros transparentes com o interior visível (bancos, painel, volante), faróis e lanternas com lente, grade, para-choques pretos de plástico, calotas, pneus com sulco, emblemas
+- No teto, uma escada de alumínio presa com cintas em dois suportes transversais: duas longarinas e os degraus entre elas, todos visíveis
+- O carro se comporta como carro: as rodas giram e esterçam, a carroceria rola nas curvas e mergulha na freada, a luz de freio acende, os pneus soltam fumaça e deixam marca quando derrapam
+- Um circuito fechado de asfalto, com reta de largada, curvas de raios diferentes, subida e descida, zebras, guard-rails, barreiras de pneus, áreas de escape de brita e de grama, pórtico de largada, arquibancada e boxes
+- Asfalto com desgaste, emendas, borracha na trajetória e trechos molhados que refletem o céu e o carro
+- Em volta, paisagem até o horizonte: mata densa com folhagem que balança, grama alta, morros ao longe com névoa de distância
+- Céu com sol baixo de fim de tarde, nuvens com volume e luz atravessando as árvores
+- Sombras do sol nítidas de perto e suaves ao longe, oclusão de ambiente, reflexos coerentes na pintura, nos vidros e no asfalto molhado
+- Pós-processamento de jogo atual: desfoque de movimento, bloom, tone mapping e anti-aliasing temporal, sem fantasma e sem serrilhado nas bordas finas (escada, guard-rail, folhagem)
+- Três câmeras: perseguição, capô e uma câmera de TV à beira da pista
+- O mundo tem limite, mas o limite não pode aparecer de dentro do circuito
+
+CONTROLES
+W acelera, S freia e dá ré, A e D esterçam, Espaço é o freio de mão, C troca a câmera, R devolve o carro à pista.
+
+VERIFICAÇÃO
+- Crítico visual: um subagente separado, novo a cada rodada, que vê SÓ os seus renders e as imagens de `referencia/` (as fotos do carro e as capturas de jogo), nunca o seu código nem o seu raciocínio. Ele recebe a lista de arquivos e a escala de severidade abaixo, e mais nada: nenhuma explicação sua sobre o que é de propósito. Dê a ele 6 poses fixas de câmera, renderizadas em 2560×1440 no Chrome com aceleração de GPU, e a volta roteirizada de 60 s, pilotada por comandos gravados e capturada quadro a quadro com passo fixo de 1/60 s. Da volta, ele recebe um quadro a cada meio segundo e três rajadas de 8 quadros consecutivos, para pegar cintilação, serrilhado, objeto surgindo do nada, faixas e fantasma. Ele compara lado a lado com as referências e devolve defeitos concretos, em ordem de prioridade. Escala: "grave" é o que qualquer pessoa nota em 1 segundo como imagem que não é de jogo de ponta, ou como carro que não é o das fotos; "médio" se nota olhando com atenção; "menor" só aparece na comparação lado a lado. Itere até ele não apontar nada acima de "menor".
+- Desempenho: consultas de tempo de GPU e um log de tempo de quadro da volta roteirizada de 60 s, rodando em tempo real. Informe média, percentil 99 e máximo.
+- Controles: um teste automatizado que aperta cada tecla e confere o efeito (o carro acelera, freia, esterça, troca de câmera e volta à pista), e a volta roteirizada completa o circuito sem sair do asfalto.
+
+PRONTO QUANDO: as três verificações passarem. Entregue `index.html`, o tamanho, o relatório de desempenho, a revisão final do crítico e o vídeo da volta de 60 s em `volta.mp4` (2560×1440, 60 quadros por segundo).
+
+AMBIENTE
+O Chrome está em `/Applications/Google Chrome.app`. O `/opt/homebrew/bin/python3` tem o Playwright instalado, e há `ffmpeg` e `node` no PATH. Use o Chrome sem janela para os renders; janela visível só nas medições de desempenho. Guarde scripts, renders e pacotes do crítico em `trabalho/`, dentro desta pasta.

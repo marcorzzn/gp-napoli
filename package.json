@@ -1,0 +1,17 @@
+{
+  "name": "uno-com-escada",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Fiat Uno Mille EP 1996 com escada no teto — três circuitos 3D WebGPU no navegador.",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "build": "node napoli/source/build.mjs && node posillipo/source/build.mjs && node --check server.js && node -e \"import('node:fs').then(fs=>{for(const f of ['index.html','napoli/index.html','posillipo/index.html','fable/index.html','opus/index.html','astra/index.html'])if(!fs.existsSync(f))throw new Error('Missing '+f);console.log('Static assets verified.');})\"",
+    "lint": "node --check server.js",
+    "test": "node --test server.test.mjs napoli.test.mjs posillipo.test.mjs"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}

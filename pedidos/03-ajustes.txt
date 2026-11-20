@@ -1,0 +1,9 @@
+Três ajustes, pedidos por quem vai publicar a peça:
+
+1. Texto dos controles. Na tela de início e no menu, troque "esterçam" e "esterça" por "faz curvas": a linha do teclado fica "A D ou ← →  faz curvas" e a do controle fica "Analógico esquerdo  faz curvas". Se o verbo esterçar aparecer em qualquer outro texto da interface, troque também.
+
+2. Volume geral. Reduza todo o som em 60%: o nível geral passa a 40% do atual.
+
+3. Som de ambiente (mata, pássaros, público). Ele cai 80% em relação ao nível de hoje: fica em 20% do atual, ou seja, metade do resto depois do corte geral.
+
+O resto fica como está. Ajuste os testes de som que dependem de nível absoluto, rode de novo as verificações, refaça `volta-som.mp4` com a trilha nova e atualize `acrescimo.md` (lista de controles, níveis e tamanho). No fim, informe os níveis medidos antes e depois, do som inteiro e da camada de ambiente.

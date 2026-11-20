@@ -1,0 +1,52 @@
+Esta pasta tem um jogo pronto: um Fiat Uno Mille EP 1996 com escada no teto, dirigível num circuito, em WebGPU, num único `index.html`. Ele sai de `source/` pelo build (`node source/build.mjs`), e as ferramentas de captura, teste e medição estão em `trabalho/`. Leia o código e as ferramentas antes de mexer.
+
+Quero que ele vire um jogo que alguém abre e joga: tela de início, controles de jogo de corrida, painel, benchmark e som. O visual fica como está.
+
+PRIORIDADES, quando duas coisas brigarem
+1. Não quebrar o que existe: a imagem, a volta roteirizada e o desempenho ficam como estão.
+2. Dirigir bem no teclado e no controle.
+3. Som convincente.
+4. Arquivo pequeno.
+
+RESTRIÇÕES
+- As mesmas da peça: um único `index.html` autocontido, que abre sem rede; nenhuma biblioteca; nenhum arquivo de textura, de modelo ou de áudio.
+- Todo o som é sintetizado na hora com Web Audio. Nenhuma amostra gravada, nenhuma música.
+- Nenhuma alocação por quadro no laço do jogo, incluindo o código novo de entrada, painel e som.
+- Os parâmetros de URL e os ganchos que as ferramentas de `trabalho/` usam continuam funcionando. Captura, teste e medição sem janela não podem parar na tela de início.
+- Fora do jogo aberto por uma pessoa (capturas, poses, medição), a imagem sai igual à de hoje: sem painel e sem menu por cima.
+- Textos da interface em português do Brasil.
+
+CONTROLES
+- Teclado: W ou seta para cima acelera; S ou seta para baixo freia e dá ré; A e D ou setas esterçam; Espaço é o freio de mão; C troca a câmera; R devolve o carro à pista; segurar V olha para trás.
+- Controle (Gamepad API, layout padrão): gatilho direito acelera e gatilho esquerdo freia e dá ré, os dois analógicos; analógico esquerdo esterça, com zona morta; A é o freio de mão; Y troca a câmera; X devolve o carro à pista; RB olha para trás; Start abre o menu.
+- Câmbio automático.
+- Painel na tela: velocímetro em km/h, conta-giros, marcha, cronômetro da volta e melhor volta. A volta conta ao cruzar a linha de largada.
+
+MENU E FERRAMENTAS
+- Tela de início com o nome da peça, a lista de controles e um botão para começar. O som só começa nesse clique.
+- Esc pausa e abre o menu, com a lista de controles, o botão Continuar e o botão Benchmark.
+- M liga e desliga o som.
+- H mostra e esconde as estatísticas de desempenho: quadros por segundo, tempo de quadro e, quando o navegador permitir, tempo de GPU.
+- B, ou o botão do menu, roda a volta roteirizada de 60 s como benchmark e mostra no fim a média, o percentil 99 e o máximo do tempo de quadro e do tempo de GPU, e quantos quadros passaram de 16,7 ms.
+- F refaz a volta roteirizada, só para assistir.
+- 1 a 6 pulam para as seis poses fixas que a captura já usa.
+
+SOM
+- Motor de quatro cilindros 1.0 a gasolina: o tom segue o giro, o timbre e o volume seguem o acelerador, e a troca de marcha se ouve.
+- Pneus: cantam na derrapagem e no freio de mão, na proporção do escorregamento, e somem quando o carro agarra.
+- Vento que cresce com a velocidade.
+- Ambiente de autódromo: mata e pássaros ao fundo; o público se ouve ao passar pela arquibancada.
+- O som pausa no menu e volta no Continuar.
+- O som da volta roteirizada precisa poder ser renderizado fora do tempo real, a partir da mesma simulação determinística, para entrar no vídeo.
+
+VERIFICAÇÃO
+- Entrada: um teste automatizado para cada tecla e para cada comando do controle (com um controle simulado), conferindo o efeito no jogo, e para os estados do menu (início, pausa, continuar).
+- Benchmark: o teste dispara o benchmark e confere que ele termina e devolve os números.
+- Som: renderize fora do tempo real o áudio da volta roteirizada e confira por medida que não há silêncio nem estouro; que a frequência do motor acompanha o giro; que o som de pneu só aparece nos trechos de escorregamento; e que o mudo zera a saída.
+- Regressão: os testes que já existem continuam passando (controles, alocação por quadro, volta roteirizada sem sair do asfalto), e as seis poses saem iguais às do build de partida.
+- Desempenho: meça a volta roteirizada antes e depois da mudança, nas mesmas condições. A máquina está em uso por outros programas e a placa de vídeo pode estar ocupada, então compare o antes e o depois; não persiga número absoluto. O depois não pode ser pior que o antes além do ruído da medição.
+
+PRONTO QUANDO: as verificações passarem. Entregue o `index.html`; o tamanho antes e depois; `acrescimo.md` com a lista de controles e o resultado de cada verificação; e `volta-som.mp4`, a volta roteirizada de 60 s em 2560×1440 e 60 quadros por segundo, capturada quadro a quadro, com a trilha de som sintetizada junto.
+
+AMBIENTE
+MacBook Pro M4 Max. O Chrome está em `/Applications/Google Chrome.app`. O `/opt/homebrew/bin/python3` tem o Playwright instalado, e há `ffmpeg` e `node` no PATH. Outra automação usa o Chrome nesta máquina: feche só os navegadores que você mesmo abriu, pelo próprio Playwright, e nunca mate processos do Chrome por nome. Guarde scripts e saídas novas em `trabalho/`.

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Circuito di Posillipo · Gran Premio di Napoli (1937 · 1955 · 2026)</title>
+<style>
+html,body{margin:0;height:100%;background:#060c14;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.45;color:#e5eef7}
+#c{position:absolute;inset:0;margin:auto;width:100vw;height:100vh;display:block;object-fit:contain}
+#msg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:min(560px,90vw);text-align:center;letter-spacing:.02em;white-space:pre-wrap;line-height:1.55;color:#dbe9f8}
+#msg .err-card{background:rgba(10,20,34,.94);border:1px solid rgba(110,197,255,.32);border-radius:12px;padding:24px 28px;box-shadow:0 20px 50px rgba(0,0,0,.55)}
+#msg .err-eyebrow{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#62c1ff;margin:0 0 8px}
+#msg .err-title{font-size:20px;font-weight:700;color:#fff;margin:0 0 10px}
+#msg .err-body{font-size:14px;color:#b8cbe0;margin:0 0 18px}
+#msg .err-link{display:inline-block;padding:10px 18px;border-radius:8px;background:#1278d8;color:#fff;font-weight:600;text-decoration:none}
+#msg .err-link:hover{background:#238cf0}
+#hint{position:absolute;left:16px;bottom:12px;opacity:.84;text-shadow:0 1px 3px #000;transition:opacity 1.5s;pointer-events:none;font-size:13px}
+#hg,#ht,#hs,#tag,#ui{display:none;position:absolute;pointer-events:none}
+#hg{right:1.6vh;bottom:1.6vh}
+#ht{left:50%;top:1.6vh;transform:translateX(-50%)}
+#hs{left:1.6vh;top:1.6vh}
+#tag{left:50%;bottom:2.2vh;transform:translateX(-50%);padding:.45em 1.15em;border-radius:1.2em;background:rgba(7,16,28,.78);border:1px solid rgba(77,178,255,.35);color:#fff;white-space:nowrap}
+#ui{inset:0;pointer-events:auto;align-items:center;justify-content:center;background:rgba(5,12,22,.72);font-size:clamp(11px,1.62vh,16px)}
+#ui.ini{background:linear-gradient(rgba(4,12,24,.50),rgba(4,12,24,.88))}
+#ui>div{max-width:min(920px,95vw);max-height:96vh;overflow:auto;padding:1.4em 2.0em;box-sizing:border-box;text-align:center}
+#ui .badge{display:inline-block;margin:0 0 .45em;font-size:.78em;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#6ec5ff}
+#ui h1{margin:0;font-size:2.7em;line-height:1.08;letter-spacing:-.01em;color:#fff}
+#ui .sub{margin:.35em 0 .25em;opacity:.92;letter-spacing:.06em;text-transform:uppercase;font-size:.84em;color:#cde4fb}
+#ui .spec{margin:0 0 1.1em;font-size:.82em;color:#95b3d1}
+#ui h2{margin:0 0 .45em;font-size:.95em;letter-spacing:.12em;text-transform:uppercase;color:#62c1ff}
+#ui .cols{display:flex;gap:2.6em;justify-content:center;flex-wrap:wrap;text-align:left;margin-top:.6em}
+#ui table{border-collapse:collapse}
+#ui td,#ui th{padding:.14em .7em .14em 0;font-weight:400;text-align:left}
+#ui td:first-child{color:#fff;font-weight:600;white-space:nowrap;padding-right:1.2em}
+#res{display:none;margin:0 0 1.2em;padding:1em 1.4em;border-radius:.8em;background:rgba(255,255,255,.07);border:1px solid rgba(98,193,255,.25)}
+#res table{margin:0 auto}#res th,#res td{padding:.2em 1.1em;text-align:right}#res td{color:#fff;font-weight:600;font-variant-numeric:tabular-nums}#res p{margin:.7em 0 0}
+#ui .bar{margin:0 auto .85em;display:inline-flex;flex-wrap:wrap;gap:.38em;align-items:center;justify-content:center;padding:.38em .55em;border-radius:.6em;background:rgba(255,255,255,.06);border:1px solid rgba(110,197,255,.22)}
+#ui .bar .blbl{font-size:.76em;letter-spacing:.1em;text-transform:uppercase;color:#9cc4e8;margin:0 .45em 0 .2em;font-weight:700}
+#ui .bar button{font-family:inherit;font-size:.82em;font-weight:600;color:#dbe9f8;background:transparent;border:1px solid transparent;border-radius:.38em;padding:.36em .82em;cursor:pointer;white-space:nowrap}
+#ui .bar button:hover{background:rgba(255,255,255,.12)}
+#ui .bar button.is-active{background:#1278d8;color:#fff;border-color:rgba(255,255,255,.25)}
+#ui .meta-note{margin:-.35em 0 .85em;font-size:.76em;color:#97b5d4}
+#ui .bt{margin-top:1.2em;display:flex;flex-wrap:wrap;gap:.65em;justify-content:center;align-items:center}
+#ui .bt button{font-family:inherit;font-size:1.02em;font-weight:600;color:#fff;background:#1278d8;border:1px solid rgba(255,255,255,.16);border-radius:.5em;padding:.58em 1.45em;cursor:pointer;transition:background .15s ease;white-space:nowrap}
+#ui .bt button:hover{background:#248cf0}
+#ui .bt button+button{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2)}
+#ui .bt button+button:hover{background:rgba(255,255,255,.22)}
+#ui button:focus-visible{outline:2px solid #6ec5ff;outline-offset:2px}
+#ui .glb-row{margin-top:.85em;display:flex;flex-wrap:wrap;gap:.6em;justify-content:center;align-items:center;font-size:.8em;color:#a8c5e3}
+#ui .glb-row button{font-family:inherit;font-size:.92em;font-weight:600;color:#e5eef7;background:rgba(255,255,255,.08);border:1px solid rgba(110,197,255,.32);border-radius:.42em;padding:.38em .9em;cursor:pointer;white-space:nowrap}
+#ui .glb-row button:hover{background:rgba(255,255,255,.16)}
+#ui .hub-link{display:inline-block;margin-top:.95em;font-size:.86em;color:#a8c7e6;text-decoration:none;letter-spacing:.04em}
+#ui .hub-link:hover{color:#fff;text-decoration:underline}
+</style>
+</head>
+<body data-state="loading">
+<canvas id="c"></canvas>
+<div id="msg">Avvio motore WebGPU Posillipo…</div>
+<div id="hint">W accelera · S frena/retro · A/D sterza · Spazio freno a mano / Active Aero (2026) · C telecamera · R ripristina</div>
+<canvas id="hg"></canvas><canvas id="ht"></canvas><canvas id="hs"></canvas><div id="tag"></div>
+<div id="ui"><div>
+<p class="badge" id="era-badge">Circuito di Posillipo 5,13 km · 1955</p>
+<h1 id="era-title">VII Gran Premio di Napoli</h1>
+<p class="sub" id="era-sub">Lancia D50 (#6) · Alberto Ascari · Posillipo 1955</p>
+<p class="spec" id="era-spec">V8 90° 2.5L · 260 CV · 620 kg · RWD</p>
+<div id="res"></div>
+
+<div class="bar" role="group" aria-label="Epoca storica">
+  <span class="blbl">Epoca</span>
+  <button type="button" data-era="1937">1937 · Alfa 12C-36 (B/N)</button>
+  <button type="button" data-era="1955">1955 · Lancia D50 Ascari</button>
+  <button type="button" data-era="2026">2026 · Ferrari SF-26</button>
+</div>
+<br>
+<div class="bar" role="group" aria-label="Qualità grafica">
+  <span class="blbl">Qualità</span>
+  <button type="button" data-q="molto-bassa">Molto Bassa (APU 2014)</button>
+  <button type="button" data-q="bassa">Bassa</button>
+  <button type="button" data-q="media">Media</button>
+  <button type="button" data-q="alta">Alta (PBR)</button>
+</div>
+<p class="meta-note" id="qnote"></p>
+
+<div class="cols">
+<div><h2>Tastiera</h2><table>
+<tr><td>W o ↑</td><td>accelera</td></tr>
+<tr><td>S o ↓</td><td>frena e retromarcia</td></tr>
+<tr><td>A D o ← →</td><td>sterza</td></tr>
+<tr><td>Spazio</td><td id="space-desc">freno a mano</td></tr>
+<tr><td>C</td><td>cambia telecamera</td></tr>
+<tr><td>V (tieni)</td><td>guarda indietro</td></tr>
+<tr><td>R</td><td>ripristina in pista</td></tr>
+<tr><td>Esc</td><td>pausa e menu</td></tr>
+</table></div>
+<div><h2>Strumenti</h2><table>
+<tr><td>M</td><td>attiva / disattiva audio</td></tr>
+<tr><td>H</td><td>statistiche prestazioni</td></tr>
+<tr><td>F</td><td>guida autonoma (Demo)</td></tr>
+<tr><td>B</td><td>benchmark 60 s</td></tr>
+<tr><td>1 – 6</td><td>pose Posillipo &amp; Nisida</td></tr>
+<tr><td colspan="2" style="font-weight:400;color:#cde4fb;opacity:.85;padding-top:.45em">Viale Virgilio · Parco Virgiliano · Coroglio<br>Via Boccaccio · Via Manzoni · Via Petrarca</td></tr>
+</table></div>
+</div>
+
+<div class="bt"><button id="b0">Inizia gara</button><button id="bDemo">Guida autonoma (Demo)</button><button id="b1">Benchmark 60 s</button></div>
+
+<div class="glb-row">
+  <button type="button" id="bGlb">Carica modello 3D locale (.glb)</button>
+  <input type="file" id="glb-file" accept=".glb" hidden>
+  <span id="glb-status"></span>
+</div>
+
+<a class="hub-link" href="/">← Torna alla panoramica Gran Premio di Napoli</a>
+</div></div>
+<script>
+/*__CODE__*/
+</script>
+</body>
+</html>

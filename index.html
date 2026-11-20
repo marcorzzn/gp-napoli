@@ -1,0 +1,980 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gran Premio di Napoli · Lungomare 127 &amp; Posillipo (1937 · 1955 · 2026)</title>
+<meta name="description" content="Simulatore WebGPU Gran Premio di Napoli: Fiat 127 Napoli 1926 sul Lungomare Caracciolo e Circuito di Posillipo in 3 epoche storiche (1937 Alfa 12C-36, 1955 Lancia D50 Ascari, 2026 Ferrari SF-26) con 4 preset grafici da APU 2014 a PBR completo.">
+<meta property="og:title" content="Gran Premio di Napoli · Lungomare 127 &amp; Posillipo (1937 · 1955 · 2026)">
+<meta property="og:description" content="Corri sul Lungomare Caracciolo con la Fiat 127 Napoli 1926 e sul Circuito storico di Posillipo (5,13 km) nelle epoche 1937, 1955 e 2026 in WebGPU.">
+<style>
+  :root {
+    --bg: #08111b;
+    --surface: #0f1b29;
+    --surface-2: #142436;
+    --border: rgba(154, 203, 255, 0.14);
+    --border-strong: rgba(154, 203, 255, 0.28);
+    --text: #f3f7fc;
+    --muted: #a6bbd1;
+    --azzurro: #1278d8;
+    --azzurro-hover: #258ef2;
+    --azzurro-soft: #6ec5ff;
+    --rosso: #d62828;
+    --gold: #f5c95c;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  a { color: inherit; }
+
+  .hub {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 28px 24px 64px;
+  }
+
+  /* Global Quality Preset Bar */
+  .quality-strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 12px 16px;
+    margin-bottom: 32px;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+  }
+  .quality-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .quality-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--azzurro-soft);
+  }
+  .quality-desc {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .quality-desc strong { color: var(--text); }
+  .q-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .q-btn {
+    appearance: none;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+    padding: 8px 13px;
+    border-radius: 7px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  .q-btn:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.10);
+    border-color: var(--border-strong);
+  }
+  .q-btn[aria-pressed="true"] {
+    background: var(--azzurro);
+    border-color: var(--azzurro);
+    color: #fff;
+  }
+  .q-btn:focus-visible {
+    outline: 2px solid var(--azzurro-soft);
+    outline-offset: 2px;
+  }
+
+  /* Flagship Napoli Hero */
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+    gap: 36px;
+    align-items: center;
+    margin-bottom: 48px;
+    padding-bottom: 36px;
+    border-bottom: 1px solid var(--border);
+  }
+  .eyebrow {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--azzurro-soft);
+    margin: 0 0 10px;
+  }
+  h1 {
+    margin: 0 0 14px;
+    font-size: clamp(30px, 3.9vw, 46px);
+    line-height: 1.07;
+    letter-spacing: -0.026em;
+    color: #fff;
+  }
+  .lead {
+    margin: 0 0 22px;
+    color: var(--muted);
+    font-size: 16px;
+    max-width: 58ch;
+  }
+  .hero-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin: 0 0 24px;
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .metric strong {
+    display: block;
+    font-size: 17px;
+    font-weight: 700;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+  .metric span {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  .webgpu-note {
+    margin: 14px 0 0;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .webgpu-note strong { color: var(--text); }
+
+  .hero-figure {
+    margin: 0;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .hero-img-wrap {
+    aspect-ratio: 4 / 3;
+    background: #0b141f;
+    overflow: hidden;
+  }
+  .hero-img-wrap img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .hero-caption {
+    padding: 12px 16px;
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .hero-caption strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* Section headers */
+  .section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    margin: 0 0 18px;
+  }
+  .section-title {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--azzurro-soft);
+  }
+  .section-sub {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* Grids & Cards */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+    margin-bottom: 48px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .card:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-2px);
+  }
+  .thumb {
+    aspect-ratio: 16 / 10;
+    background: #070d14;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border);
+  }
+  .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .thumb-bw img {
+    filter: grayscale(1) contrast(1.12);
+  }
+  .card-body {
+    padding: 18px 20px 20px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+  .card-kicker {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin: 0 0 5px;
+  }
+  .card h3 {
+    margin: 0 0 8px;
+    font-size: 19px;
+    letter-spacing: -0.015em;
+    color: #fff;
+  }
+  .card p {
+    margin: 0 0 14px;
+    font-size: 14px;
+    color: var(--muted);
+    flex: 1;
+  }
+  .specs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    font-size: 12px;
+    color: var(--muted);
+    margin: 0 0 16px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-variant-numeric: tabular-nums;
+  }
+  .specs span strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .card-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  /* Buttons */
+  .btn {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 15px;
+    border-radius: 7px;
+    border: 1px solid var(--border-strong);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .btn:hover, .btn:focus-visible {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(154, 203, 255, 0.45);
+    outline: none;
+  }
+  .btn:focus-visible {
+    outline: 2px solid var(--azzurro-soft);
+    outline-offset: 2px;
+  }
+  .btn-primary {
+    background: var(--azzurro);
+    border-color: var(--azzurro);
+    color: #fff;
+  }
+  .card-actions .btn-primary {
+    flex: 1;
+  }
+  .btn-primary:hover, .btn-primary:focus-visible {
+    background: var(--azzurro-hover);
+    border-color: var(--azzurro-hover);
+  }
+
+  /* Two-column panels (Pipeline .glb & Controls) */
+  .two-col {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    margin-bottom: 48px;
+  }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 22px;
+  }
+  .panel h3 {
+    margin: 0 0 10px;
+    font-size: 16px;
+    color: #fff;
+  }
+  .panel p {
+    margin: 0 0 12px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .panel p:last-child { margin-bottom: 0; }
+  .panel code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    color: #d6ecff;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .key-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 16px;
+    font-size: 13px;
+  }
+  .key-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--muted);
+  }
+  kbd {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(154, 203, 255, 0.25);
+    border-radius: 4px;
+    padding: 2px 6px;
+    white-space: nowrap;
+  }
+
+  /* Embedded full-viewport player */
+  body.playing { overflow: hidden; }
+  body.playing .hub { display: none; }
+  #player {
+    display: none;
+    position: fixed;
+    inset: 0;
+    flex-direction: column;
+    background: #000;
+  }
+  body.playing #player { display: flex; }
+  .topbar {
+    height: 46px;
+    flex: 0 0 46px;
+    background: #0b1522;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .topbar-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    overflow-x: auto;
+  }
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+  }
+  .tab-btn {
+    appearance: none;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 7px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .tab-btn:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .tab-btn[aria-pressed="true"] {
+    color: #fff;
+    background: var(--azzurro);
+    border-color: var(--azzurro);
+  }
+  .topbar-select {
+    background: #142436;
+    color: var(--text);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 8px;
+    cursor: pointer;
+  }
+  .topbar-link {
+    font-size: 12px;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .topbar-link:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
+  }
+  #gameFrame {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+    background: #000;
+  }
+
+  @media (max-width: 960px) {
+    .hero { grid-template-columns: 1fr; gap: 24px; }
+    .grid { grid-template-columns: 1fr; }
+    .two-col { grid-template-columns: 1fr; }
+    .section-head { flex-direction: column; gap: 4px; }
+  }
+  @media (max-width: 560px) {
+    .hub { padding: 18px 16px 44px; }
+    .hero-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .key-list { grid-template-columns: 1fr; }
+    .topbar { padding: 0 8px; }
+    .topbar-link { display: none; }
+    .hero-caption { flex-direction: column; gap: 2px; }
+  }
+</style>
+</head>
+<body>
+  <main class="hub">
+    <!-- Barra Globale Qualità Grafica (4 Preset: da PC/APU 2014 a PBR Completo) -->
+    <section class="quality-strip" aria-label="Impostazioni qualità grafica">
+      <div class="quality-info">
+        <span class="quality-label">Profilo Grafico Motore WebGPU</span>
+        <span class="quality-desc" id="qualityDesc"><strong>Alta (PBR Originale)</strong> · 3 cascate ombre 2048px, SSR, TAA, motion blur, erba e vegetazione completa.</span>
+      </div>
+      <div class="q-group" role="group" aria-label="Seleziona preset grafico">
+        <button type="button" class="q-btn" data-q="molto-bassa" aria-pressed="false">Molto Bassa (APU 2014)</button>
+        <button type="button" class="q-btn" data-q="bassa" aria-pressed="false">Bassa</button>
+        <button type="button" class="q-btn" data-q="media" aria-pressed="false">Media</button>
+        <button type="button" class="q-btn" data-q="alta" aria-pressed="true">Alta (PBR)</button>
+      </div>
+    </section>
+
+    <!-- Flagship Hero: Lungomare Caracciolo + Accesso Rapido Posillipo -->
+    <section class="hero" aria-label="Gran Premio di Napoli — Fiat 127 Napoli 1926">
+      <div>
+        <p class="eyebrow">Motore WebGPU Single-HTML · 4 Circuiti Napoletani + 3 Originali</p>
+        <h1>Gran Premio di Napoli</h1>
+        <p class="lead">
+          Corri con la <strong>Fiat 127 Napoli 1926</strong> sul tracciato cittadino del Lungomare Caracciolo e affronta le <strong>3 epoche storiche del Circuito di Posillipo (5,13 km)</strong>: 1937 Alfa Romeo 12C-36 in bianco e nero, 1955 Lancia D50 di Alberto Ascari e 2026 Ferrari SF-26 con Active Aero.
+        </p>
+        <div class="hero-metrics" aria-label="Panoramica circuiti">
+          <div class="metric"><strong>1.275 m</strong><span>Lungomare 127</span></div>
+          <div class="metric"><strong>5,13 km</strong><span>Posillipo 1937–2026</span></div>
+          <div class="metric"><strong>4 Preset</strong><span>APU 2014 → PBR</span></div>
+          <div class="metric"><strong>.GLB</strong><span>Loader 3D offline</span></div>
+        </div>
+        <div class="hero-actions">
+          <button type="button" class="btn btn-primary" data-launch="napoli">Corri sul Lungomare (127) →</button>
+          <button type="button" class="btn" data-launch="posillipo-1955">Posillipo 1955 (Ascari)</button>
+          <a class="btn" id="heroDirectLink" href="/napoli/">Schermo intero</a>
+        </div>
+        <p class="webgpu-note" id="webgpuNote">
+          <strong>Requisito:</strong> browser con <strong>WebGPU</strong> (Chrome, Edge o Safari 18+). Su PC integrati/APU 2014 seleziona <strong>Molto Bassa</strong> in alto.
+        </p>
+      </div>
+      <figure class="hero-figure">
+        <div class="hero-img-wrap">
+          <img src="/assets/aistudio/image_f3e260ec.png" alt="Fiat 127 in livrea azzurra Napoli 1926 con scudetto tricolore numero 3 sul cofano bianco, tetto a scacchi azzurro e bianco, maschera di Pulcinella e scritta FORZA NAPOLI">
+        </div>
+        <figcaption class="hero-caption">
+          <strong>Fiat 127 · Livrea Napoli 1926</strong>
+          <span>Lungomare Caracciolo · Rotonda Diaz · 7 chicane</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- Sezione 1: 3 Varianti Storiche del Circuito di Posillipo -->
+    <div class="section-head">
+      <h2 class="section-title">Circuito di Posillipo · 3 Epoche Storiche (5,13 km)</h2>
+      <p class="section-sub">Viale Virgilio · Parco Virgiliano · Discesa Coroglio · Via Boccaccio · Via Manzoni · Via Petrarca</p>
+    </div>
+    <section class="grid" aria-label="Varianti storiche del Circuito di Posillipo">
+      <article class="card">
+        <div class="thumb thumb-bw">
+          <img src="/assets/aistudio/01_1937_Alfa_Romeo_12C36_Nuvolari_Farina_bce79b35.jpg" alt="Alfa Romeo 12C-36 del 1937 di Tazio Nuvolari e Nino Farina alla Coppa Principessa di Piemonte">
+        </div>
+        <div class="card-body">
+          <div class="card-kicker">Epoca 1 · 1937 · Cinegiornale Luce B/N</div>
+          <h3>Alfa Romeo 12C-36 (#32)</h3>
+          <p>Coppa Principessa di Piemonte con Tazio Nuvolari e Nino Farina. Asfalto catramato senza strisce moderne, Torretta Razionalista bianca, balle di paglia, ruote a raggi Borrani e bianco/nero CSS a costo zero GPU.</p>
+          <div class="specs">
+            <span><strong>370 CV</strong> V12 4.1L</span>
+            <span><strong>820 kg</strong> RWD</span>
+            <span><strong>&gt;290</strong> km/h</span>
+          </div>
+          <div class="card-actions">
+            <button type="button" class="btn btn-primary" data-launch="posillipo-1937">Avvia 1937</button>
+            <a class="btn" data-direct="posillipo-1937" href="/posillipo/?era=1937" aria-label="Apri Posillipo 1937 a schermo intero">Diretto</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="thumb">
+          <img src="/assets/aistudio/02_1955_Lancia_D50_Ascari_serbatoi_siluro_9e550be9.jpg" alt="Lancia D50 numero 6 del 1955 con i caratteristici serbatoi laterali a siluro di Alberto Ascari">
+        </div>
+        <div class="card-body">
+          <div class="card-kicker">Epoca 2 · 1955 · VII GP di Napoli</div>
+          <h3>Lancia D50 Ascari (#6)</h3>
+          <p>La monoposto di Vittorio Jano con serbatoi a siluro laterali, casco azzurro di Alberto Ascari, luce tramonto Kodachrome, mura in tufo giallo napoletano, box in legno con fusti Shell/Agip e striscioni storici.</p>
+          <div class="specs">
+            <span><strong>260 CV</strong> V8 2.5L</span>
+            <span><strong>620 kg</strong> RWD</span>
+            <span><strong>~250</strong> km/h</span>
+          </div>
+          <div class="card-actions">
+            <button type="button" class="btn btn-primary" data-launch="posillipo-1955">Avvia 1955</button>
+            <a class="btn" data-direct="posillipo-1955" href="/posillipo/?era=1955" aria-label="Apri Posillipo 1955 a schermo intero">Diretto</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="thumb">
+          <img src="/assets/aistudio/03_2026_Ferrari_SF26_HyperF1_9c46ea40.webp" alt="Ferrari SF-26 Hyper-Tech F1 del 2026 con livrea Rosso Scuderia, cofano bianco e Halo">
+        </div>
+        <div class="card-body">
+          <div class="card-kicker">Epoca 3 · 2026 · FIA Street Circuit</div>
+          <h3>Ferrari SF-26 (#16)</h3>
+          <p>Hyper-Tech F1 con Halo in titanio, gomme slick Pirelli P-Zero, barriere TecPro, Hospitality Paddock in vetro/carbonio, pannelli LED FIA, yacht nella baia di Nisida e Active Aero Z-Mode / X-Mode su Spazio.</p>
+          <div class="specs">
+            <span><strong>1.020 CV</strong> V6 Hybrid</span>
+            <span><strong>798 kg</strong> Slick</span>
+            <span><strong>~360</strong> km/h</span>
+          </div>
+          <div class="card-actions">
+            <button type="button" class="btn btn-primary" data-launch="posillipo-2026">Avvia 2026</button>
+            <a class="btn" data-direct="posillipo-2026" href="/posillipo/?era=2026" aria-label="Apri Posillipo 2026 a schermo intero">Diretto</a>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- Sezione 2: Archivio Fotografico Posillipo & Pipeline Offline .GLB -->
+    <div class="section-head">
+      <h2 class="section-title">Archivio Storico Posillipo &amp; Pipeline 3D Offline (.glb)</h2>
+      <p class="section-sub">Riferimenti reali del promontorio di Posillipo, Nisida e caricamento mesh fotogrammetriche locali</p>
+    </div>
+    <section class="grid" aria-label="Archivio fotografico storico di Posillipo">
+      <article class="card">
+        <div class="thumb">
+          <img src="/assets/aistudio/00_posillipo_cartolina_aerea_circuito_1937_9706b9ff.jpg" alt="Cartolina aerea d'epoca del Circuito Internazionale di Napoli a Posillipo Alto con Viale Virgilio, Parco Virgiliano, Via Manzoni e l'Isola di Nisida">
+        </div>
+        <div class="card-body">
+          <div class="card-kicker">Altimetria Reale · 108 m – 152 m</div>
+          <h3>Promontorio, Parco Virgiliano &amp; Nisida</h3>
+          <p>Dislivello vulcanico sul Golfo di Pozzuoli con discesa da Viale Virgilio verso Coroglio/Nisida (con cratere di Porto Paone e pontile borbonico) e risalita verso Via Boccaccio e Via Manzoni.</p>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="thumb thumb-bw">
+          <img src="/assets/aistudio/circuito_1937_partenza_torretta_razionalista_72351bc7.jpg" alt="Partenza del 1937 su Viale Virgilio davanti alla Torretta Razionalista bianca e alle balaustre">
+        </div>
+        <div class="card-body">
+          <div class="card-kicker">Viale Virgilio · 1937</div>
+          <h3>Torretta Razionalista &amp; Griglia</h3>
+          <p>La storica torretta bianca a due piani dei cronometristi ricostruita sul rettilineo di partenza insieme alle staccionate bianche, alle balaustre sul mare e alle balle di paglia.</p>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="thumb thumb-bw">
+          <img src="/assets/aistudio/circuito_1955_rettilineo_virgilio_pini_tribune_70d883bd.jpg" alt="Monoposto del 1955 sul rettilineo alberato di Viale Virgilio sotto i pini marittimi di Posillipo">
+        </div>
+        <div class="card-body">
+          <div class="card-kicker">Viale Virgilio · 1955</div>
+          <h3>Filare di Pini &amp; Mura di Tufo</h3>
+          <p>I pini domestici ad ombrello (Pinus pinea), le mura di contenimento in tufo giallo napoletano da 1,95 m e le ville Liberty che incorniciano le varianti storiche di Posillipo.</p>
+        </div>
+      </article>
+    </section>
+
+    <section class="two-col" aria-label="Integrazione modelli 3D offline GLB">
+      <div class="panel">
+        <h3>Metodo 1 — Bake &amp; Export Offline (.glb)</h3>
+        <p>
+          Salva il modello fotogrammetrico <code>posillipo_3d_reconstruction.glb</code> in <code>public/assets/posillipo_bundle/models/</code>: il motore WebGPU di Posillipo rileva e carica automaticamente il file all’avvio senza alcuna chiave API o connessione esterna.
+        </p>
+        <p>
+          In alternativa, dal menu interno di qualsiasi epoca Posillipo usa il pulsante <strong>Carica modello 3D locale (.glb)</strong> per importare al volo un file dal tuo disco.
+        </p>
+      </div>
+      <div class="panel">
+        <h3>Metodo 2 — Ricostruzione Neurale (LingBot-Map)</h3>
+        <p>
+          Supportato anche qualsiasi <code>posillipo_lingbot.glb</code> esportato da Google Colab + LingBot-Map (video Google Earth Studio lungo il KML di 5,13 km convertito con <code>npz_to_glb</code>).
+        </p>
+        <p>
+          In assenza di un file <code>.glb</code> su disco, il simulatore genera istantaneamente il promontorio procedurale completo di Posillipo, Nisida e mura in tufo.
+        </p>
+      </div>
+    </section>
+
+    <!-- Sezione 3: Riferimenti Lungomare Caracciolo -->
+    <div class="section-head">
+      <h2 class="section-title">Circuito Lungomare Caracciolo · Fiat 127 Napoli 1926</h2>
+      <p class="section-sub">Tracciato cittadino da 1.275 m antiorario con 7 chicane e 4 preset grafici</p>
+    </div>
+    <section class="grid" aria-label="Riferimenti del circuito del Lungomare di Napoli">
+      <article class="card">
+        <div class="thumb">
+          <img src="/assets/aistudio/image_352b7143.png" alt="Planimetria ufficiale Napoli Racing Show Arena da 1.275 metri in senso antiorario su Via Caracciolo">
+        </div>
+        <div class="card-body">
+          <div class="card-kicker">Tracciato · 1.275 m Antiorario</div>
+          <h3>Via Caracciolo &amp; Rotonda Diaz</h3>
+          <p>Due rettilinei paralleli collegati dall’anello semicircolare fronte mare, 7 chicane con rotoballe, tornante Castel dell’Ovo, tornante Mergellina e Tribuna Principale A/B.</p>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="thumb">
+          <img src="/assets/aistudio/image_2f330de5.png" alt="Veduta aerea del circuito sul Lungomare di Napoli con il Golfo, Castel dell'Ovo e il Vesuvio">
+        </div>
+        <div class="card-body">
+          <div class="card-kicker">Scenario · Golfo di Napoli</div>
+          <h3>Castel dell’Ovo, Vesuvio &amp; Costa</h3>
+          <p>Mare del Golfo animato nello shader, scogliere calcaree bianche, sabbia vulcanica di Mappatella Beach, isolotto di Megaride con Castel dell’Ovo e profilo del Vesuvio.</p>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="thumb">
+          <img src="/assets/aistudio/image_89486885.png" alt="Vista a livello pista con barriere New Jersey, rotoballe, blocchi tricolore e maxischermo">
+        </div>
+        <div class="card-body">
+          <div class="card-kicker">Arredo pista · Luce tardo pomeriggio</div>
+          <h3>New Jersey, Rotoballe &amp; Maxischermo</h3>
+          <p>Barriere New Jersey in cemento, rotoballe cilindriche, blocchi bianco-rossi e tricolore, portale di partenza bianco/rosso e maxischermo LED.</p>
+        </div>
+      </article>
+    </section>
+
+    <!-- Sezione 4: I tre circuiti originali del motore -->
+    <div class="section-head">
+      <h2 class="section-title">I tre circuiti originali del motore</h2>
+      <p class="section-sub">Versioni originali preservate intatte nella repository</p>
+    </div>
+    <section class="grid" aria-label="Versioni originali giocabili">
+      <article class="card">
+        <div class="thumb">
+          <img src="/screenshots/fable-largada.jpg" alt="Rettilineo di partenza nella versione Fable 5.2">
+        </div>
+        <div class="card-body">
+          <div class="card-kicker">Serra da Mata · Base del motore</div>
+          <h3>Fable 5.2</h3>
+          <p>Motore originale WebGPU PBR su cui sono costruiti Lungomare e Posillipo: audio sintetizzato, gamepad, benchmark 60 s e giro guidato.</p>
+          <div class="specs">
+            <span><strong>603 KB</strong> HTML</span>
+            <span><strong>WebGPU</strong> PBR</span>
+          </div>
+          <div class="card-actions">
+            <button type="button" class="btn btn-primary" data-launch="fable">Gioca Fable</button>
+            <a class="btn" href="/fable/" aria-label="Apri Fable 5.2 a schermo intero">Diretto</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="thumb">
+          <img src="/screenshots/opus-largada.jpg" alt="Portale di partenza nella versione Opus 5.5">
+        </div>
+        <div class="card-body">
+          <div class="card-kicker">Circuito da Serra</div>
+          <h3>Opus 5.5</h3>
+          <p>Renderer WebGPU deferred con SDF per la carrozzeria, menu di pausa, audio sintetizzato e modalità benchmark da 60 secondi.</p>
+          <div class="specs">
+            <span><strong>341 KB</strong> HTML</span>
+            <span><strong>WebGPU</strong> SDF</span>
+          </div>
+          <div class="card-actions">
+            <button type="button" class="btn btn-primary" data-launch="opus">Gioca Opus</button>
+            <a class="btn" href="/opus/" aria-label="Apri Opus 5.5 a schermo intero">Diretto</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="thumb">
+          <img src="/screenshots/astra-largada.jpg" alt="Vettura davanti ai box a Serra do Lume, versione GPT-6.2 Astra">
+        </div>
+        <div class="card-body">
+          <div class="card-kicker">Serra do Lume</div>
+          <h3>GPT-6.2 Astra</h3>
+          <p>Avvio diretto in pista con tribuna popolata, tre telecamere, minimappa del tracciato e cruscotto analogico nell’HUD.</p>
+          <div class="specs">
+            <span><strong>467 KB</strong> HTML</span>
+            <span><strong>WebGPU</strong> Diretto</span>
+          </div>
+          <div class="card-actions">
+            <button type="button" class="btn btn-primary" data-launch="astra">Gioca Astra</button>
+            <a class="btn" href="/astra/" aria-label="Apri GPT-6.2 Astra a schermo intero">Diretto</a>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- Sezione 5: Comandi di guida -->
+    <div class="section-head">
+      <h2 class="section-title">Comandi di guida</h2>
+      <p class="section-sub">Tastiera e controller Gamepad standard supportati nativamente</p>
+    </div>
+    <section class="two-col" aria-label="Riepilogo dei comandi">
+      <div class="panel">
+        <h3>Guida (Tastiera)</h3>
+        <ul class="key-list">
+          <li><span>Accelera</span> <kbd>W / ↑</kbd></li>
+          <li><span>Frena / Retro</span> <kbd>S / ↓</kbd></li>
+          <li><span>Sterza</span> <kbd>A D / ← →</kbd></li>
+          <li><span>Freno a mano / Active Aero 2026</span> <kbd>Spazio</kbd></li>
+          <li><span>Cambia telecamera</span> <kbd>C</kbd></li>
+          <li><span>Ripristina in pista</span> <kbd>R</kbd></li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Menu e Strumenti</h3>
+        <ul class="key-list">
+          <li><span>Pausa / Menu / Qualità</span> <kbd>Esc</kbd></li>
+          <li><span>Audio on / off</span> <kbd>M</kbd></li>
+          <li><span>Guarda indietro</span> <kbd>V</kbd></li>
+          <li><span>Guida autonoma (Demo)</span> <kbd>F</kbd></li>
+          <li><span>Benchmark 60 s</span> <kbd>B</kbd></li>
+          <li><span>Pose livrea &amp; pista</span> <kbd>1 – 6</kbd></li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <section id="player" aria-label="Area di gioco">
+    <nav class="topbar" aria-label="Selettore circuiti e qualità">
+      <div class="topbar-group">
+        <button type="button" class="tab-btn" id="backBtn">← Panoramica</button>
+        <button type="button" class="tab-btn" data-switch="napoli" aria-pressed="false">Lungomare 127</button>
+        <button type="button" class="tab-btn" data-switch="posillipo-1937" aria-pressed="false">Posillipo 1937</button>
+        <button type="button" class="tab-btn" data-switch="posillipo-1955" aria-pressed="false">Posillipo 1955</button>
+        <button type="button" class="tab-btn" data-switch="posillipo-2026" aria-pressed="false">Posillipo 2026</button>
+        <button type="button" class="tab-btn" data-switch="fable" aria-pressed="false">Fable 5.2</button>
+        <button type="button" class="tab-btn" data-switch="opus" aria-pressed="false">Opus 5.5</button>
+        <button type="button" class="tab-btn" data-switch="astra" aria-pressed="false">GPT-6.2 Astra</button>
+      </div>
+      <div class="topbar-right">
+        <select class="topbar-select" id="playerQual" aria-label="Qualità grafica">
+          <option value="molto-bassa">Molto Bassa (APU 2014)</option>
+          <option value="bassa">Bassa</option>
+          <option value="media">Media</option>
+          <option value="alta">Alta (PBR)</option>
+        </select>
+        <a class="topbar-link" id="directLink" href="/napoli/">Schermo intero</a>
+      </div>
+    </nav>
+    <iframe id="gameFrame" title="Gran Premio di Napoli · Simulatore WebGPU" allow="gamepad; fullscreen"></iframe>
+  </section>
+
+  <script>
+    (() => {
+      const QUALITY_INFO = {
+        'molto-bassa': '<strong>Molto Bassa (APU 2014 · 60 FPS)</strong> · Risoluzione scalata, ombre disattivate con fake shadow analitica sotto l’auto, niente SSR/TAA/erba, B/N 1937 via CSS.',
+        bassa: '<strong>Bassa (Bilanciata)</strong> · Ombra direzionale base 512px, cubemap statico, niente TAA/SSR/erba, vegetazione leggera.',
+        media: '<strong>Media (PBR + TAA)</strong> · 2 cascate ombre 1024px, TAA, bloom, erba e vegetazione 85%.',
+        alta: '<strong>Alta (PBR Originale)</strong> · 3 cascate ombre 2048px, SSR, TAA, motion blur, erba e vegetazione completa.',
+      };
+
+      const ROUTES = {
+        napoli: (q) => `/napoli/?q=${encodeURIComponent(q)}`,
+        'posillipo-1937': (q) => `/posillipo/?era=1937&q=${encodeURIComponent(q)}`,
+        'posillipo-1955': (q) => `/posillipo/?era=1955&q=${encodeURIComponent(q)}`,
+        'posillipo-2026': (q) => `/posillipo/?era=2026&q=${encodeURIComponent(q)}`,
+        fable: () => '/fable/',
+        opus: () => '/opus/',
+        astra: () => '/astra/',
+      };
+
+      const frame = document.getElementById('gameFrame');
+      const directLink = document.getElementById('directLink');
+      const heroDirectLink = document.getElementById('heroDirectLink');
+      const backBtn = document.getElementById('backBtn');
+      const switchBtns = Array.from(document.querySelectorAll('[data-switch]'));
+      const qBtns = Array.from(document.querySelectorAll('[data-q]'));
+      const playerQual = document.getElementById('playerQual');
+      const qualityDesc = document.getElementById('qualityDesc');
+      const webgpuNote = document.getElementById('webgpuNote');
+
+      let currentQuality = 'alta';
+      try {
+        const saved = (localStorage.getItem('gpn-quality') || '').toLowerCase();
+        if (QUALITY_INFO[saved]) currentQuality = saved;
+      } catch {}
+
+      let activeKey = null;
+
+      function applyQuality(q, reloadPlayer = false) {
+        if (!QUALITY_INFO[q]) return;
+        currentQuality = q;
+        try { localStorage.setItem('gpn-quality', q); } catch {}
+        qBtns.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.q === q)));
+        if (playerQual) playerQual.value = q;
+        if (qualityDesc) qualityDesc.innerHTML = QUALITY_INFO[q];
+        if (heroDirectLink) heroDirectLink.href = ROUTES.napoli(q);
+        document.querySelectorAll('[data-direct]').forEach((a) => {
+          const fn = ROUTES[a.dataset.direct];
+          if (fn) a.setAttribute('href', fn(q));
+        });
+        if (reloadPlayer && activeKey && (activeKey === 'napoli' || activeKey.startsWith('posillipo-'))) {
+          setActiveVersion(activeKey, true);
+        }
+      }
+
+      if (!('gpu' in navigator) && webgpuNote) {
+        webgpuNote.innerHTML = '<strong>Nota:</strong> WebGPU non è rilevato in questo browser. Apri questa pagina su Chrome, Edge o Safari 18+ con GPU hardware per avviare i circuiti 3D.';
+      }
+
+      function setActiveVersion(key, pushUrl = true, extraQuery = '') {
+        const buildUrl = ROUTES[key];
+        if (!buildUrl) return;
+        activeKey = key;
+        document.body.classList.add('playing');
+        document.body.dataset.version = key;
+        let target = buildUrl(currentQuality);
+        if (extraQuery) target += (target.includes('?') ? '&' : '?') + extraQuery.replace(/^\?/, '');
+        if (frame.getAttribute('src') !== target) {
+          frame.setAttribute('src', target);
+        }
+        directLink.setAttribute('href', target);
+        const supportsQuality = key === 'napoli' || key.startsWith('posillipo-');
+        if (playerQual) playerQual.style.display = supportsQuality ? '' : 'none';
+        switchBtns.forEach((btn) => {
+          btn.setAttribute('aria-pressed', String(btn.dataset.switch === key));
+        });
+        if (pushUrl) {
+          const url = new URL(window.location.href);
+          url.searchParams.set('version', key);
+          url.searchParams.set('q', currentQuality);
+          window.history.replaceState(null, '', url);
+        }
+        frame.addEventListener('load', () => {
+          try { frame.contentWindow?.focus(); } catch {}
+        }, { once: true });
+      }
+
+      function exitPlayer() {
+        activeKey = null;
+        document.body.classList.remove('playing');
+        delete document.body.dataset.version;
+        frame.removeAttribute('src');
+        switchBtns.forEach((btn) => btn.setAttribute('aria-pressed', 'false'));
+        const url = new URL(window.location.href);
+        url.searchParams.delete('version');
+        url.searchParams.delete('autostart');
+        window.history.replaceState(null, '', url);
+      }
+
+      qBtns.forEach((b) => b.addEventListener('click', () => applyQuality(b.dataset.q, true)));
+      if (playerQual) playerQual.addEventListener('change', () => applyQuality(playerQual.value, true));
+
+      document.querySelectorAll('[data-launch]').forEach((btn) => {
+        btn.addEventListener('click', () => setActiveVersion(btn.dataset.launch));
+      });
+      switchBtns.forEach((btn) => {
+        btn.addEventListener('click', () => setActiveVersion(btn.dataset.switch));
+      });
+      backBtn.addEventListener('click', exitPlayer);
+
+      const params = new URLSearchParams(window.location.search);
+      const qParam = (params.get('q') || '').toLowerCase();
+      applyQuality(QUALITY_INFO[qParam] ? qParam : currentQuality, false);
+
+      const initial = params.get('version');
+      if (ROUTES[initial]) {
+        setActiveVersion(initial, false);
+      } else if (params.get('autostart') === '1') {
+        setActiveVersion('napoli', false, 'autostart=1');
+      }
+    })();
+  </script>
+</body>
+</html>
