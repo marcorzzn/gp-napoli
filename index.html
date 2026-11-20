@@ -539,7 +539,7 @@
     <!-- Flagship Hero: Lungomare Caracciolo + Accesso Rapido Posillipo -->
     <section class="hero" aria-label="Gran Premio di Napoli — Fiat 127 Napoli 1926">
       <div>
-        <p class="eyebrow">Simulatore WebGPU Indipendente · Lungomare Caracciolo &amp; Circuito Storico di Posillipo (1937 · 1955 · 2026)</p>
+        <p class="eyebrow">Motore WebGPU Single-HTML · 4 Circuiti Napoletani + 3 Originali</p>
         <h1>Gran Premio di Napoli</h1>
         <p class="lead">
           Corri con la <strong>Fiat 127 Napoli 1926</strong> sul tracciato cittadino del Lungomare Caracciolo e affronta le <strong>3 epoche storiche del Circuito di Posillipo (5,13 km)</strong>: 1937 Alfa Romeo 12C-36 in bianco e nero, 1955 Lancia D50 di Alberto Ascari e 2026 Ferrari SF-26 con Active Aero.
@@ -556,7 +556,7 @@
           <a class="btn" id="heroDirectLink" href="./napoli/">Schermo intero</a>
         </div>
         <p class="webgpu-note" id="webgpuNote">
-          <strong>Motore grafico universale:</strong> accelerazione WebGPU nativa ad alte prestazioni con preset scalabili da APU 2014 a PBR completo.
+          <strong>Motore grafico universale:</strong> accelerazione WebGPU nativa con preset grafici scalabili da APU 2014 a PBR completo.
         </p>
       </div>
       <figure class="hero-figure">
@@ -738,7 +738,71 @@
       </article>
     </section>
 
-    <!-- Sezione 4: Comandi di guida -->
+    <!-- Sezione 4: I tre circuiti originali del motore -->
+    <div class="section-head">
+      <h2 class="section-title">I tre circuiti originali del motore</h2>
+      <p class="section-sub">Versioni originali preservate intatte nella repository</p>
+    </div>
+    <section class="grid" aria-label="Versioni originali giocabili">
+      <article class="card">
+        <div class="thumb">
+          <img src="screenshots/fable-largada.jpg" alt="Rettilineo di partenza nella versione Fable 5.2">
+        </div>
+        <div class="card-body">
+          <div class="card-kicker">Serra da Mata · Base del motore</div>
+          <h3>Fable 5.2</h3>
+          <p>Motore originale WebGPU PBR su cui sono costruiti Lungomare e Posillipo: audio sintetizzato, gamepad, benchmark 60 s e giro guidato.</p>
+          <div class="specs">
+            <span><strong>603 KB</strong> HTML</span>
+            <span><strong>WebGPU</strong> PBR</span>
+          </div>
+          <div class="card-actions">
+            <button type="button" class="btn btn-primary" data-launch="fable">Gioca Fable</button>
+            <a class="btn" href="./fable/" aria-label="Apri Fable 5.2 a schermo intero">Diretto</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="thumb">
+          <img src="screenshots/opus-largada.jpg" alt="Portale di partenza nella versione Opus 5.5">
+        </div>
+        <div class="card-body">
+          <div class="card-kicker">Circuito da Serra</div>
+          <h3>Opus 5.5</h3>
+          <p>Renderer WebGPU deferred con SDF per la carrozzeria, menu di pausa, audio sintetizzato e modalità benchmark da 60 secondi.</p>
+          <div class="specs">
+            <span><strong>341 KB</strong> HTML</span>
+            <span><strong>WebGPU</strong> SDF</span>
+          </div>
+          <div class="card-actions">
+            <button type="button" class="btn btn-primary" data-launch="opus">Gioca Opus</button>
+            <a class="btn" href="./opus/" aria-label="Apri Opus 5.5 a schermo intero">Diretto</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="thumb">
+          <img src="screenshots/astra-largada.jpg" alt="Vettura davanti ai box a Serra do Lume, versione GPT-6.2 Astra">
+        </div>
+        <div class="card-body">
+          <div class="card-kicker">Serra do Lume</div>
+          <h3>GPT-6.2 Astra</h3>
+          <p>Avvio diretto in pista con tribuna popolata, tre telecamere, minimappa del tracciato e cruscotto analogico nell’HUD.</p>
+          <div class="specs">
+            <span><strong>467 KB</strong> HTML</span>
+            <span><strong>WebGPU</strong> Diretto</span>
+          </div>
+          <div class="card-actions">
+            <button type="button" class="btn btn-primary" data-launch="astra">Gioca Astra</button>
+            <a class="btn" href="./astra/" aria-label="Apri GPT-6.2 Astra a schermo intero">Diretto</a>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- Sezione 5: Comandi di guida -->
     <div class="section-head">
       <h2 class="section-title">Comandi di guida</h2>
       <p class="section-sub">Tastiera e controller Gamepad standard supportati nativamente</p>
@@ -777,6 +841,9 @@
         <button type="button" class="tab-btn" data-switch="posillipo-1937" aria-pressed="false">Posillipo 1937</button>
         <button type="button" class="tab-btn" data-switch="posillipo-1955" aria-pressed="false">Posillipo 1955</button>
         <button type="button" class="tab-btn" data-switch="posillipo-2026" aria-pressed="false">Posillipo 2026</button>
+        <button type="button" class="tab-btn" data-switch="fable" aria-pressed="false">Fable 5.2</button>
+        <button type="button" class="tab-btn" data-switch="opus" aria-pressed="false">Opus 5.5</button>
+        <button type="button" class="tab-btn" data-switch="astra" aria-pressed="false">GPT-6.2 Astra</button>
       </div>
       <div class="topbar-right">
         <select class="topbar-select" id="playerQual" aria-label="Qualità grafica">
@@ -800,11 +867,16 @@
         alta: '<strong>Alta (PBR Originale)</strong> · 3 cascate ombre 2048px, SSR, TAA, motion blur, erba e vegetazione completa.',
       };
 
+      const base = window.location.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '');
+      const rel = (p) => `${base}${p}`;
       const ROUTES = {
-        napoli: (q) => `./napoli/?q=${encodeURIComponent(q)}`,
-        'posillipo-1937': (q) => `./posillipo/?era=1937&q=${encodeURIComponent(q)}`,
-        'posillipo-1955': (q) => `./posillipo/?era=1955&q=${encodeURIComponent(q)}`,
-        'posillipo-2026': (q) => `./posillipo/?era=2026&q=${encodeURIComponent(q)}`,
+        napoli: (q) => rel(`/napoli/?q=${encodeURIComponent(q)}`),
+        'posillipo-1937': (q) => rel(`/posillipo/?era=1937&q=${encodeURIComponent(q)}`),
+        'posillipo-1955': (q) => rel(`/posillipo/?era=1955&q=${encodeURIComponent(q)}`),
+        'posillipo-2026': (q) => rel(`/posillipo/?era=2026&q=${encodeURIComponent(q)}`),
+        fable: () => rel('/fable/'),
+        opus: () => rel('/opus/'),
+        astra: () => rel('/astra/'),
       };
 
       const frame = document.getElementById('gameFrame');
@@ -843,7 +915,7 @@
       }
 
       if (!('gpu' in navigator) && webgpuNote) {
-        webgpuNote.innerHTML = '<strong>Motore grafico universale:</strong> accelerazione WebGPU nativa con modalità compatibilità per tutti i dispositivi.';
+        webgpuNote.innerHTML = '<strong>Motore grafico universale:</strong> accelerazione WebGPU con modalità compatibilità automatica attiva.';
       }
 
       function setActiveVersion(key, pushUrl = true, extraQuery = '') {

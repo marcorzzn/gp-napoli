@@ -16,7 +16,7 @@ async function withServer(fn) {
   }
 }
 
-test('serves root launcher page with Napoli 127, 3 Posillipo eras, and quality bar', async () => {
+test('serves root launcher page with Napoli 127, 3 Posillipo eras, quality bar, and original demos', async () => {
   await withServer(async (baseUrl) => {
     const healthRes = await fetch(`${baseUrl}/health`);
     assert.equal(healthRes.status, 200);
@@ -31,6 +31,9 @@ test('serves root launcher page with Napoli 127, 3 Posillipo eras, and quality b
     assert.match(html, /Lancia D50/);
     assert.match(html, /Ferrari SF-26/);
     assert.match(html, /Molto Bassa \(APU 2014\)/);
+    assert.match(html, /Fable 5\.2/);
+    assert.match(html, /Opus 5\.5/);
+    assert.match(html, /GPT-6\.2 Astra/);
   });
 });
 
