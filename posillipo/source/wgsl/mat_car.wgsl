@@ -83,7 +83,7 @@ fn surf(in: V2F, ff: bool) -> Surface {
       // Luce pioggia FIA posteriore / display volante
       s.albedo = in.col.rgb;
       s.rough = 0.18;
-      s.emissive = in.col.rgb * select(3.5, 2.2, sub == 1u);
+      s.emissive = select(0.35, 0.22, sub == 1u);
     }
     case 12u: {
       // Livrea, numeri di gara (#32, #6, #16), stemmi e sponsor HP da atlas 2D

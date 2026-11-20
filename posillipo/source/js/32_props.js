@@ -276,7 +276,7 @@ function propsBuild() {
           Bx(mb, -len * 0.5, len * 0.5, 0.72, 0.88, -0.06, 0.06);
           Bx(mb, -len * 0.5, len * 0.5, 0.34, 0.46, -0.06, 0.06);
           Bx(mb, -len * 0.45, -len * 0.45 + 0.12, -0.2, 1.02, -0.07, 0.07);
-          if (Math.abs(TRK.curv[i]) > 0.008) {
+          if (Math.abs(TRK.k[i]) > 0.008) {
             mb.mat(10); col(mb, 0.76, 0.62, 0.28);
             Bx(mb, -len * 0.42, len * 0.42, 0.0, 0.88, -side * 0.46, -side * 0.04);
           }
@@ -284,7 +284,7 @@ function propsBuild() {
           // 1955: Cordolo in basalto vulcanico + balle di paglia nei tratti veloci
           mb.mat(3); col(mb, 0.44, 0.44, 0.46);
           Bx(mb, -len * 0.52, len * 0.52, -0.2, 0.46, -0.22, 0.22);
-          if (Math.abs(TRK.curv[i]) > 0.007 || isVirgilio) {
+          if (Math.abs(TRK.k[i]) > 0.007 || isVirgilio) {
             mb.mat(10); col(mb, 0.74, 0.58, 0.26);
             Bx(mb, -len * 0.35, len * 0.35, 0.0, 0.84, -side * 0.44, -side * 0.06);
           }
