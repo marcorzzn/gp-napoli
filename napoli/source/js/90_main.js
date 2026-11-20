@@ -57,7 +57,14 @@ function startFallback2D(err) {
   try { heightFieldBuild(); } catch (e) {}
   try { worldMapBuild(); } catch (e) {}
   try { aiBuild(); } catch (e) {}
-  if (typeof vehicleReset === 'function') vehicleReset();
+  if (typeof gameInit === 'function') {
+    try { gameInit(); } catch (e) {}
+  } else if (typeof vehicleReset === 'function') {
+    vehicleReset();
+  }
+  if (typeof sndInit === 'function') {
+    try { sndInit(); } catch (e) {}
+  }
   if (GAME.ui && typeof uiInit === 'function') {
     try { uiInit(); } catch (e) {}
   }
@@ -68,8 +75,14 @@ function startFallback2D(err) {
     let dt = Math.min((now - lastT) / 1000, 0.05);
     lastT = now;
     RT[2] = dt;
-    if (typeof vehicleStep === 'function') vehicleStep(dt);
-    if (typeof sndTick === 'function') sndTick(dt);
+    if (typeof gameTick === 'function') {
+      gameTick(false);
+    } else if (typeof vehicleStep === 'function') {
+      vehicleStep(typeof GS !== 'undefined' ? GS.held : 0);
+    }
+    if (typeof sndFrame === 'function') {
+      try { sndFrame(); } catch (e) {}
+    }
 
     const w = canvas.width = window.innerWidth;
     const h = canvas.height = window.innerHeight;

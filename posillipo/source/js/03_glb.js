@@ -175,7 +175,7 @@ function mountGlbPrimitives(parsed, label) {
 }
 
 async function tryAutoLoadPosillipoGlb() {
-  const url = '/assets/posillipo_bundle/models/posillipo_3d_reconstruction.glb';
+  const url = new URL('../assets/posillipo_bundle/models/posillipo_3d_reconstruction.glb', location.href).href;
   try {
     const res = await fetch(url, { method: 'GET' });
     if (!res.ok) return false;

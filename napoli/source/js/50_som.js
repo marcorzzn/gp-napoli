@@ -218,7 +218,11 @@ function sndControl() {
 }
 // O contexto de áudio só pode nascer num gesto do usuário: é chamado no clique de "Começar".
 function sndStart() {
-  if (SND.ctx) return; const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+  if (SND.ctx) {
+    if (SND.ctx.state === 'suspended') SND.ctx.resume();
+    return;
+  }
+  const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
   const ctx = SND.ctx = new AC({ latencyHint: 'interactive' });
   const fallback = () => {   // navegador sem AudioWorklet: mesmo sintetizador num ScriptProcessor
     const s = sndCore(ctx.sampleRate), n = SND.node = ctx.createScriptProcessor(1024, 0, 2);
